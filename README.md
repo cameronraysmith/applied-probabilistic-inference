@@ -1,0 +1,1 @@
+[![Binder](https://img.shields.io/badge/Binder-Try%20it!-blue.svg)](https://mybinder.org/v2/gh/cameronraysmith/applied-probabilistic-inference/master?urlpath=lab/tree/pbw.md)

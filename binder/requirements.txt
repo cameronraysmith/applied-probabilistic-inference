@@ -1,0 +1,10 @@
+jupyterlab>=2.0
+jupytext
+plotly
+matplotlib
+pandas
+bash_kernel
+pymc3
+scipy
+seaborn
+theano
