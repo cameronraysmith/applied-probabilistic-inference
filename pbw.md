@@ -33,6 +33,17 @@ jupyter:
 ---
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
+# An introduction to applied probabilistic inference
+
+These notes borrow heavily from and are based on
+
+* Betancourt, Michael (2019). Probabilistic Modeling and Statistical Inference. Retrieved from https://github.com/betanalpha/knitr_case_studies/tree/master/modeling_and_inference, commit b474ec1a5a79347f7c9634376c866fe3294d657a.
+* Betancourt, Michael (2020). Towards A Principled Bayesian Workflow (RStan). Retrieved from https://github.com/betanalpha/knitr_case_studies/tree/master/principled_bayesian_workflow, commit 23eb263be4cfb44278d0dfb8ddbd593a4b142506.
+* [betanalpha/knitr_case_studies](https://github.com/betanalpha/knitr_case_studies)
+* [lstmemery/principled-bayesian-workflow-pymc3](https://github.com/lstmemery/principled-bayesian-workflow-pymc3)
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Modeling process
 <!-- #endregion -->
 
@@ -91,16 +102,20 @@ jupyter:
 </div>
 <!-- #endregion -->
 
-## The process of inference
-
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
+## The process of inference
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 <div>
 <center>    
 <img src="https://github.com/betanalpha/knitr_case_studies/raw/master/modeling_and_inference/figures/inferential_config/model_config/model_config5/model_config5.png" alt="Drawing" width="90%"/></center>
 </div>
 <!-- #endregion -->
 
+<!-- #region {"slideshow": {"slide_type": "fragment"}} -->
 How can we do our best to validate this process works as close as possible to providing a high quality mirror for natural systems?
+<!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Workflow overview
@@ -146,10 +161,47 @@ c_dark_highlight ="#7C0000"
 ```
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-# Section 3.1
+# Section 4.1
 
-Build a model that generates Poisson counts
+Build a model that generates (Poisson) counts that may explain what we have in our data
 <!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
+## Example generative model
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "fragment"}} -->
+From a very simple perspective, generative modeling refers to the situation in which we develop a candidate probabilistic specification of the process from which our data are generated. Usually this will include the specification of prior distributions over all first-order parameters.
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "fragment"}} -->
+<div>
+<center>    
+<img src="https://www.bayespy.org/_images/tikz-57bc0c88a2974f4c1e2335fe9edb88ff2efdf970.png" style="background-color:white;" alt="Drawing" width="10%"/></center>
+</div>
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "fragment"}} -->
+\begin{split}
+p(\mathbf{y}|\mu,\tau) &= \prod^{9}_{n=0} \mathcal{N}(y_n|\mu,\tau) \\
+p(\mu) &= \mathcal{N}(\mu|0,10^{-6}) \\
+p(\tau) &= \mathcal{G}(\tau|10^{-6},10^{-6})
+\end{split}
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "fragment"}} -->
+This happens to come from a library called [bayespy](https://github.com/bayespy/bayespy/blob/develop/doc/source/user_guide/quickstart.rst). The best description I am aware of the syntax and semantics of graphical models via factor graph notation is in the [tikz-bayesnet](https://github.com/jluttine/tikz-bayesnet) library [technical report](https://github.com/jluttine/tikz-bayesnet/blob/master/dietz-techreport.pdf).
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
+## Our data
+<!-- #endregion -->
+
+```python slideshow={"slide_type": "fragment"}
+df = pd.read_csv('data.csv')
+print(df.head())
+df.shape
+```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 ## Build a generative model
@@ -314,7 +366,7 @@ plt.title('Posterior predictive distribution');
 ```
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-# Section 3.2
+# Section 4.2
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "subslide"}
@@ -424,7 +476,7 @@ with open("fit_data2.pkl", "wb+") as buffer:
 ```
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-# Section 3.3
+# Section 4.3
 
 Build a model that generates zero-inflated Poisson counts
 <!-- #endregion -->
@@ -611,7 +663,7 @@ plt.title('Posterior predictive distribution');
 ```
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-# Section 3.4
+# Section 4.4
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "subslide"}
