@@ -28,7 +28,79 @@ jupyter:
     scroll: true
     theme: black
   toc-autonumbering: true
+  toc-showcode: false
+  toc-showmarkdowntxt: false
 ---
+
+<!-- #region {"slideshow": {"slide_type": "slide"}} -->
+# Modeling process
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
+## The world through the lens of probability
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
+### Systems, environments, and observations
+
+<div>
+<center>    
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/modeling_and_inference/figures/inferential_config/observational_process/multiple_probes/multiple_probes.png" alt="Drawing" width="90%"/>
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/modeling_and_inference/figures/inferential_config/observational_process/multiple_observational_processes/multiple_observational_processes.png" alt="Drawing" width="90%"/></center>
+</div>
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
+### The space of observational models and the true data generating process
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "fragment"}} -->
+#### The observational model
+* observation space: $Y$
+* arbitrary points in the observation space: $y$
+* explicitly realized observations from the observational process $\tilde{y}$
+* data generating process: a probability distribution over the observation space
+* space of all data generating processes: $\mathcal{P}$
+* observational model vs model configuration space: the subspace, $\mathcal{S} \subset \mathcal{P}$, of data generating processes considered in any particular application
+* parametrization: a map from a model configuration space $\mathcal{S}$ to a parameter space $\mathcal{\Theta}$ assigning to each model configuration $s \in \mathcal{S}$ a parameter $\theta \in \mathcal{\Theta}$
+* probability density for an observational model: $\pi_{\mathcal{S}}(y; s)$ in general using the parametrization to assign $\pi_{\mathcal{S}}(y; \theta)$
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
+<div>
+<center>    
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/modeling_and_inference/figures/small_world/small_world/small_world.png" alt="Drawing" width="45%"/>
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/modeling_and_inference/figures/small_world/small_world_one/small_world_one.png" alt="Drawing" width="45%"/>
+</center>
+</div>
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
+#### The true data generating process
+* true data generating process: $\pi^{\dagger}$ is the probability distribution that exactly captures the observational process in a given application
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "slide"}} -->
+## The practical reality of model construction
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "fragment"}} -->
+<div>
+<center>    
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/modeling_and_inference/figures/small_world/small_world_two/small_world_two.png" alt="Drawing" width="75%"/></center>
+</div>
+<!-- #endregion -->
+
+## The process of inference
+
+<!-- #region {"slideshow": {"slide_type": "slide"}} -->
+<div>
+<center>    
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/modeling_and_inference/figures/inferential_config/model_config/model_config5/model_config5.png" alt="Drawing" width="90%"/></center>
+</div>
+<!-- #endregion -->
+
+How can we do our best to validate this process works as close as possible to providing a high quality mirror for natural systems?
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Workflow overview
