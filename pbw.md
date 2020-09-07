@@ -141,6 +141,7 @@ import scipy.stats as stats
 import seaborn as sns
 import theano.tensor as T
 import theano
+import numpy as np
 plt.style.use(['seaborn-talk'])
 plt.rcParams["figure.figsize"] = (10,8)
 print(pm.__version__)
@@ -251,8 +252,26 @@ lbda99 = np.linspace(0, 15, num=int(15/0.001))
 
 
 
-plt.fill_between(lbda99,0.,y2=stats.norm(loc=0,scale=6.44787).pdf(lbda99),color=c_dark)
+plt.fill_between(lbda99,0.,y2=stats.norm(loc=0,scale=6.44787).pdf(lbda99),color=c_dark);
 ```
+
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
+In this case the complete Bayesian model is given by
+
+$$
+\pi( y_{1}, \ldots, y_{N}, \lambda )
+=
+\left[ \prod_{n = 1}^{N} \text{Poisson} (y_{n} \mid \lambda) \right]
+\cdot \text{HalfNormal} (\lambda \mid 6).
+$$
+<!-- #endregion -->
+
+<!-- #region {"slideshow": {"slide_type": "fragment"}} -->
+<div>
+<center>    
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/iter1/dgm/dgm.png" alt="Drawing" width="40%"/></center>
+</div>
+<!-- #endregion -->
 
 ```python slideshow={"slide_type": "subslide"}
 #WORKING
@@ -275,6 +294,16 @@ with model:
 ```python slideshow={"slide_type": "fragment"}
 simu_lbdas = trace['lbda']
 simu_ys = trace['y']
+```
+
+```python
+print(simu_lbdas[0:9])
+print(simu_lbdas.shape)
+```
+
+```python
+print(simu_ys[0:9])
+print(simu_ys.shape)
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
@@ -305,7 +334,7 @@ plt.title('Prior predictive distribution');
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 ## Fit to simulated data
 
-In example Betancourt performs this for each `y` in trace. Here we just do it for one.
+Betancourt performs this for each `y` in trace. For now we just do it for a single one.
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
@@ -322,6 +351,34 @@ with model:
 ```python slideshow={"slide_type": "fragment"}
 pm.plots.traceplot(trace);
 ```
+
+<div>
+<center>    
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/eye_chart/prior_post_regimes/prior_post_regimes.png" alt="Drawing" width="70%"/></center>
+</div>
+
+
+<div>
+<center>    
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/eye_chart/eye_chart_regimes.png" alt="Drawing" width="70%"/></center>
+</div>
+
+
+Posterior z-score
+
+$$
+z[f \mid \tilde{y}, \theta^{\dagger}] =
+\frac{ \mathbb{E}_{\mathrm{post}}[f \mid \tilde{y}] - f(\theta^{\dagger}) }
+{ \mathbb{E}_{\mathrm{post}}[f \mid \tilde{y} ] },
+$$
+
+
+Posterior contraction
+$$
+c[f \mid \tilde{y}] = 1 -
+\frac{ \mathbb{V}_{\mathrm{post}}[f \mid \tilde{y} ] }
+{ \mathbb{V}_{\mathrm{prior}}[f \mid \tilde{y} ] },
+$$
 
 ```python slideshow={"slide_type": "fragment"}
 # Compute rank of prior draw with respect to thinned posterior draws
@@ -370,7 +427,7 @@ pm.plots.plot_posterior(trace,varnames=['lbda']);
 
 ```python slideshow={"slide_type": "subslide"}
 with model:
-     ppc = pm.sample_ppc(trace)
+     ppc = pm.sample_posterior_predictive(trace)
 ```
 
 ```python slideshow={"slide_type": "fragment"}
