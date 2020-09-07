@@ -30,13 +30,16 @@ jupyter:
   toc-autonumbering: true
 ---
 
+<!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Workflow overview
+<!-- #endregion -->
 
-
+<!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 <div>
 <center>    
 <img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/workflow/all/all.png" alt="Drawing" width="90%"/></center>
 </div>
+<!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Load libraries
