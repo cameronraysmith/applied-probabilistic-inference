@@ -30,12 +30,21 @@ jupyter:
   toc-autonumbering: true
 ---
 
+# Workflow overview
+
+
+<div>
+<center>    
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/workflow/all/all.png" alt="Drawing" width="90%"/></center>
+</div>
+
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Load libraries
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
-%pylab inline
+# %pylab inline
+import matplotlib.pyplot as plt
 import pymc3 as pm
 import pandas as pd
 import scipy.stats as stats
