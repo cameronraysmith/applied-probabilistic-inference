@@ -43,6 +43,12 @@ These notes borrow heavily from and are based on
 * [lstmemery/principled-bayesian-workflow-pymc3](https://github.com/lstmemery/principled-bayesian-workflow-pymc3)
 <!-- #endregion -->
 
+# Plotting setup
+
+```python
+%run -i 'plotting.py'
+```
+
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Modeling process
 <!-- #endregion -->
@@ -134,7 +140,7 @@ How can we do our best to validate this process works as close as possible to pr
 
 ```python slideshow={"slide_type": "fragment"}
 # %pylab inline
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 import pymc3 as pm
 import pandas as pd
 import scipy.stats as stats
@@ -142,8 +148,8 @@ import seaborn as sns
 import theano.tensor as T
 import theano
 import numpy as np
-plt.style.use(['seaborn-talk'])
-plt.rcParams["figure.figsize"] = (10,8)
+# plt.style.use(['seaborn-talk'])
+# plt.rcParams["figure.figsize"] = (10,8)
 print(pm.__version__)
 print(theano.__version__)
 ```
@@ -253,6 +259,8 @@ lbda99 = np.linspace(0, 15, num=int(15/0.001))
 
 
 plt.fill_between(lbda99,0.,y2=stats.norm(loc=0,scale=6.44787).pdf(lbda99),color=c_dark);
+plt.savefig("fig/prior-density-lambda.svg", bbox_inches="tight");
+!inkscape fig/prior-density-lambda.svg --export-filename=fig/prior-density-lambda.pdf;
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
