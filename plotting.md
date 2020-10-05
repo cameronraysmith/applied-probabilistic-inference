@@ -64,6 +64,9 @@ HTML("<div style='column-count: 2;'>{}</div>".format(code))
 ```python
 # https://www.archlinux.org/packages/community/any/otf-latin-modern/
 !sudo pacman -Syu --needed --noconfirm otf-latin-modern inkscape
+!brew cask install font-latin-modern
+# matplotlib.font_manager.fontManager.addfont("~/Library/Fonts/lmsans10-regular.otf")
+# matplotlib.font_manager.fontManager.addfont("~/Library/Fonts/lmroman10-regular.otf")
 matplotlib.font_manager.fontManager.addfont("/usr/share/fonts/OTF/lmsans10-regular.otf")
 matplotlib.font_manager.fontManager.addfont("/usr/share/fonts/OTF/lmroman10-regular.otf")
 ```
