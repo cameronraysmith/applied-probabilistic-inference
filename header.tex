@@ -1,0 +1,40 @@
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage[all]{xy}
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes}
+\usepackage{natbib}
+\usepackage[margin=1.00in]{geometry}
+\usepackage[utf8]{inputenc}
+\usepackage{outlines}
+% \usepackage[backref=section]{hyperref}
+% \hypersetup{
+% 	colorlinks=true,
+%     allcolors=[RGB]{103,131,214},
+%     backref=section
+% }
+\usepackage{graphicx}
+\AtBeginDocument{\renewcommand{\ref}[1]{\autoref{#1}}}
+
+%--- these enable the background
+%--- black and main text white
+\usepackage{xcolor}
+\usepackage{pagecolor}
+\usepackage{xfrac}
+\pagecolor{black}
+\color{white}
+%---------%
+
+%--- math macros
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\StateInd}{S_{I}}
+\newcommand{\StateEnv}{S_{E}}
+\newcommand{\EnvOut}{S_{O}}
+\newcommand{\indicator}{\mathbf{1}}
+
+%--- autoref setup
+\def\equationautorefname{Eq.}
+\def\sectionautorefname{\textsection}
+\def\subsectionautorefname{\textsection}
+\def\subsubsectionautorefname{\textsection}
+\def\figureautorefname{Fig.}
