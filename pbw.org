@@ -20,14 +20,320 @@ These notes borrow heavily from and are based on
 - [[https://github.com/betanalpha/knitr_case_studies][betanalpha/knitr_case_studies]]
 - [[https://github.com/lstmemery/principled-bayesian-workflow-pymc3][lstmemery/principled-bayesian-workflow-pymc3]]
 
-* Plotting setup
-  :PROPERTIES:
-  :CUSTOM_ID: plotting-setup
-  :END:
+* System setup
+** local
+*** setup remote container host machine
 
-  #+BEGIN_SRC python
-  %run -i 'plotting.py'
-  #+END_SRC
+We already setup the container named =notebooks-vm= so all we need to do to begin with is to start it up.
+
+#+BEGIN_SRC sh :results output verbatim replace :exports both
+gcloud compute instances start notebooks-vm
+#+END_SRC
+
+#+RESULTS:
+
+Check that our instance is indeed running
+
+#+BEGIN_SRC sh :results output verbatim replace :exports both
+gcloud compute instances list
+#+END_SRC
+
+#+RESULTS:
+: NAME          ZONE           MACHINE_TYPE   PREEMPTIBLE  INTERNAL_IP  EXTERNAL_IP    STATUS
+: notebooks     us-central1-c  n1-standard-1               10.128.0.22                 TERMINATED
+: notebooks-vm  us-central1-f  n1-standard-1  true         10.128.0.26  35.223.10.144  RUNNING
+
+Make sure the correct ip address is entered into our =.ssh/config= file.
+#+BEGIN_SRC sh :results output verbatim replace :exports both
+gcloud compute config-ssh
+#+END_SRC
+
+#+RESULTS:
+: You should now be able to use ssh/scp with your instances.
+: For example, try running:
+:
+:   $ ssh notebooks-vm.us-central1-f.quarere
+:
+
+Inspect the IP address we find in our =.ssh/config= file
+
+#+BEGIN_SRC sh :results output verbatim replace :exports both
+grep HostName ~/.ssh/config
+#+END_SRC
+
+#+RESULTS:
+:     HostName 35.224.59.240
+:     HostName 35.223.10.144
+
+*** transfer files to remote machine
+
+#+BEGIN_SRC sh :results output verbatim replace :exports both
+scp plotting.py
+#+END_SRC
+** remote
+:PROPERTIES:
+:header-args: :results output verbatim replace :session notebookscontainer-sh-pbw :dir /ssh:notebooks-vm.us-central1-f.quarere|docker:klt-notebooks-vm-cjme:  :exports both  :eval never-export
+:END:
+
+#+BEGIN_SRC sh :async yes
+sudo pacman -Syu --needed --noconfirm otf-latin-modern
+#+END_SRC
+
+#+RESULTS:
+#+begin_example
+
+$ :: Synchronizing package databases...
+core                  130.4 KiB  2.77 MiB/s 00:00 [######################] 100%
+extra                1633.7 KiB  9.91 MiB/s 00:00 [######################] 100%
+community            1616.0 KiB  2.54 MiB/s 00:01 [######----------------]  30% community               3.7 MiB  5.29 MiB/s 00:00 [###############-------]  71% community               5.0 MiB  5.51 MiB/s 00:00 [####################--]  95% community               5.2 MiB  8.01 MiB/s 00:01 [######################] 100%
+:: Starting full system upgrade...
+resolving dependencies...
+looking for conflicting packages...
+
+Packages (71) adwaita-icon-theme-3.38.0-1  alsa-lib-1.2.4-3
+              alsa-topology-conf-1.2.4-2  alsa-ucm-conf-1.2.4-2
+              at-spi2-atk-2.38.0-1  at-spi2-core-2.38.0-1  binutils-2.35.1-1
+              bison-3.7.2-1  brotli-1.0.9-2  ca-certificates-mozilla-3.58-1
+              curl-7.73.0-1  dnssec-anchors-20190629-3  e2fsprogs-1.45.6-3
+              elfutils-0.181-1  expat-2.2.10-2  filesystem-2020.09.03-1
+              freetype2-2.10.4-1  fzf-0.23.1-1  gcc-10.2.0-3  gcc-libs-10.2.0-3
+              ghostscript-9.53.3-2  git-2.29.0-1  glib2-2.66.2-1  glibc-2.32-5
+              go-2:1.15.3-1  gpm-1.20.7.r38.ge82d1a6-3
+              gtk-update-icon-cache-1:3.24.23-4  gtk3-1:3.24.23-4
+              iana-etc-20201012-1  iproute2-5.9.0-1  js78-78.4.0-1
+              julia-2:1.5.2-1  libcap-2.44-1  libcap-ng-0.8-1
+              libcloudproviders-0.3.1-2  libelf-0.181-1  libinput-1.16.2-1
+              libjpeg-turbo-2.0.5-3  libldap-2.4.53-1  libpcap-1.9.1-4
+              librsvg-2:2.50.1-1  libsecret-0.20.4-1
+              libsoup-2.72.0+5+g0b094bff-3  libstemmer-0+713-2  libusb-1.0.23-3
+              libuv-1.40.0-1  lua-5.4.1-1  md4c-0.4.6-1  mesa-20.2.1-1
+              nodejs-14.14.0-1  openmpi-4.0.5-2  openssh-8.4p1-1
+              openssl-1.1.1.h-1  pacman-mirrorlist-20200920-1  pango-1:1.46.2-3
+              perl-5.32.0-3  polkit-0.118-1  python-3.8.6-1
+              python-colorama-0.4.4-1  python-setuptools-1:50.3.2-1
+              qt5-base-5.15.1-3  r-4.0.3-1  sudo-1.9.3.p1-1  systemd-246.6-1
+              systemd-libs-246.6-1  tracker3-3.0.1-1  tzdata-2020b-2
+              vulkan-icd-loader-1.2.153-2  xcb-proto-1.14.1-1
+              xkeyboard-config-2.31-1  otf-latin-modern-2.004-4
+
+Total Download Size:    447.01 MiB
+Total Installed Size:  1851.00 MiB
+Net Upgrade Size:        67.94 MiB
+
+:: Proceed with installation? [Y/n]
+:: Retrieving packages...
+tzdata-2020b-2-x...   385.0 KiB  4.04 MiB/s 00:00 [######################] 100%
+iana-etc-2020101...   388.7 KiB  3.65 MiB/s 00:00 [######################] 100%
+filesystem-2020....    30.4 KiB  1320 KiB/s 00:00 [######################] 100%
+glibc-2.32-5-x86_64     3.1 MiB  5.13 MiB/s 00:01 [######----------------]  31% glibc-2.32-5-x86_64     9.8 MiB  29.9 MiB/s 00:00 [######################] 100%
+gcc-libs-10.2.0-...     3.1 MiB  5.10 MiB/s 00:05 [#---------------------]   9% gcc-libs-10.2.0-...     9.1 MiB  13.4 MiB/s 00:01 [######----------------]  28% gcc-libs-10.2.0-...    12.9 MiB  15.2 MiB/s 00:01 [########--------------]  40% gcc-libs-10.2.0-...    15.9 MiB  15.2 MiB/s 00:01 [###########-----------]  50% gcc-libs-10.2.0-...    18.9 MiB  15.1 MiB/s 00:00 [############----------]  59% gcc-libs-10.2.0-...    22.0 MiB  15.2 MiB/s 00:00 [###############-------]  69% gcc-libs-10.2.0-...    25.2 MiB  15.5 MiB/s 00:00 [#################-----]  79% gcc-libs-10.2.0-...    28.5 MiB  15.9 MiB/s 00:00 [###################---]  90% gcc-libs-10.2.0-...    31.5 MiB  17.6 MiB/s 00:02 [######################] 100%
+glib2-2.66.2-1-x...  1680.0 KiB  2.73 MiB/s 00:00 [############----------]  58% glib2-2.66.2-1-x...     2.8 MiB  11.8 MiB/s 00:00 [######################] 100%
+expat-2.2.10-2-x...   107.8 KiB  2.34 MiB/s 00:00 [######################] 100%
+libcap-2.44-1-x86_64   57.9 KiB  1704 KiB/s 00:00 [######################] 100%
+systemd-libs-246...   504.9 KiB  4.33 MiB/s 00:00 [######################] 100%
+libcap-ng-0.8-1-...    39.8 KiB  1729 KiB/s 00:00 [######################] 100%
+e2fsprogs-1.45.6...  1194.7 KiB  8.27 MiB/s 00:00 [######################] 100%
+perl-5.32.0-3-x86_64    3.1 MiB  5.21 MiB/s 00:02 [####------------------]  20% perl-5.32.0-3-x86_64    6.7 MiB  9.29 MiB/s 00:00 [#########-------------]  44% perl-5.32.0-3-x86_64    9.3 MiB  10.5 MiB/s 00:00 [#############---------]  61% perl-5.32.0-3-x86_64   11.0 MiB  9.79 MiB/s 00:00 [###############-------]  72% perl-5.32.0-3-x86_64   11.7 MiB  7.73 MiB/s 00:00 [################------]  77% perl-5.32.0-3-x86_64   12.2 MiB  5.88 MiB/s 00:00 [#################-----]  80% perl-5.32.0-3-x86_64   12.6 MiB  4.57 MiB/s 00:00 [##################----]  83% perl-5.32.0-3-x86_64   13.0 MiB  3.79 MiB/s 00:00 [##################----]  86% perl-5.32.0-3-x86_64   13.6 MiB  3.39 MiB/s 00:00 [###################---]  89% perl-5.32.0-3-x86_64   14.1 MiB  3.09 MiB/s 00:00 [####################--]  92% perl-5.32.0-3-x86_64   14.5 MiB  2.81 MiB/s 00:00 [####################--]  95% perl-5.32.0-3-x86_64   15.0 MiB  2.74 MiB/s 00:00 [#####################-]  99% perl-5.32.0-3-x86_64   15.2 MiB  6.12 MiB/s 00:02 [######################] 100%
+openssl-1.1.1.h-...  1824.0 KiB  2.97 MiB/s 00:00 [##########------------]  49% openssl-1.1.1.h-...     3.6 MiB  11.8 MiB/s 00:00 [######################] 100%
+libldap-2.4.53-1...   304.5 KiB  3.72 MiB/s 00:00 [######################] 100%
+ca-certificates-...   330.3 KiB  4.03 MiB/s 00:00 [######################] 100%
+curl-7.73.0-1-x86_64  608.0 KiB   979 KiB/s 00:00 [############----------]  57% curl-7.73.0-1-x86_64 1056.4 KiB  3.09 MiB/s 00:00 [######################] 100%
+libelf-0.181-1-x...   451.8 KiB  3.62 MiB/s 00:00 [######################] 100%
+elfutils-0.181-1...   619.8 KiB  6.37 MiB/s 00:00 [######################] 100%
+binutils-2.35.1-...     4.7 MiB  7.84 MiB/s 00:00 [###################---]  88% binutils-2.35.1-...     5.3 MiB  25.3 MiB/s 00:00 [######################] 100%
+bison-3.7.2-1-x86_64  753.7 KiB  5.84 MiB/s 00:00 [######################] 100%
+dnssec-anchors-2...     3.0 KiB  0.00   B/s 00:00 [######################] 100%
+gcc-10.2.0-3-x86_64     2.8 MiB  4.47 MiB/s 00:06 [#---------------------]   8% gcc-10.2.0-3-x86_64     7.1 MiB  10.2 MiB/s 00:02 [####------------------]  22% gcc-10.2.0-3-x86_64    11.5 MiB  14.1 MiB/s 00:01 [#######---------------]  36% gcc-10.2.0-3-x86_64    16.1 MiB  17.1 MiB/s 00:00 [###########-----------]  51% gcc-10.2.0-3-x86_64    20.9 MiB  19.3 MiB/s 00:00 [##############--------]  66% gcc-10.2.0-3-x86_64    25.7 MiB  21.0 MiB/s 00:00 [#################-----]  81% gcc-10.2.0-3-x86_64    30.6 MiB  22.1 MiB/s 00:00 [#####################-]  97% gcc-10.2.0-3-x86_64    31.5 MiB  21.9 MiB/s 00:01 [######################] 100%
+libusb-1.0.23-3-...    68.3 KiB  1485 KiB/s 00:00 [######################] 100%
+gpm-1.20.7.r38.g...   140.5 KiB  2.92 MiB/s 00:00 [######################] 100%
+libpcap-1.9.1-4-...   274.6 KiB  3.78 MiB/s 00:00 [######################] 100%
+systemd-246.6-1-...     2.9 MiB  4.79 MiB/s 00:00 [##########------------]  48% systemd-246.6-1-...     5.9 MiB  23.1 MiB/s 00:00 [######################] 100%
+iproute2-5.9.0-1...   967.8 KiB  6.75 MiB/s 00:00 [######################] 100%
+openssh-8.4p1-1-...   906.3 KiB  6.81 MiB/s 00:00 [######################] 100%
+libsecret-0.20.4...   238.6 KiB  2.91 MiB/s 00:00 [######################] 100%
+pacman-mirrorlis...     6.3 KiB  0.00   B/s 00:00 [######################] 100%
+sudo-1.9.3.p1-1-...  1093.7 KiB  7.80 MiB/s 00:00 [######################] 100%
+freetype2-2.10.4...   498.9 KiB  4.24 MiB/s 00:00 [######################] 100%
+xcb-proto-1.14.1...   108.8 KiB  1876 KiB/s 00:00 [######################] 100%
+pango-1:1.46.2-3...   551.8 KiB  5.23 MiB/s 00:00 [######################] 100%
+libjpeg-turbo-2....   450.3 KiB  4.68 MiB/s 00:00 [######################] 100%
+librsvg-2:2.50.1...     2.3 MiB  13.3 MiB/s 00:00 [######################] 100%
+gtk-update-icon-...    15.4 KiB  1399 KiB/s 00:00 [######################] 100%
+adwaita-icon-the...     3.4 MiB  5.73 MiB/s 00:01 [#######---------------]  32% adwaita-icon-the...    10.7 MiB  32.9 MiB/s 00:00 [######################] 100%
+alsa-topology-co...    13.5 KiB  0.00   B/s 00:00 [######################] 100%
+alsa-ucm-conf-1....    38.4 KiB  1671 KiB/s 00:00 [######################] 100%
+alsa-lib-1.2.4-3...   462.5 KiB  1318 KiB/s 00:00 [######################] 100%
+at-spi2-core-2.3...   253.6 KiB  3.49 MiB/s 00:00 [######################] 100%
+at-spi2-atk-2.38...    62.9 KiB  1797 KiB/s 00:00 [######################] 100%
+brotli-1.0.9-2-x...   397.3 KiB  4.73 MiB/s 00:00 [######################] 100%
+ghostscript-9.53...     2.9 MiB  4.79 MiB/s 00:03 [###-------------------]  16% ghostscript-9.53...    10.8 MiB  16.3 MiB/s 00:00 [#############---------]  61% ghostscript-9.53...    17.6 MiB  29.5 MiB/s 00:01 [######################] 100%
+git-2.29.0-1-x86_64     2.9 MiB  4.84 MiB/s 00:00 [###########-----------]  51% git-2.29.0-1-x86_64     5.7 MiB  22.3 MiB/s 00:00 [######################] 100%
+vulkan-icd-loade...   113.4 KiB  1956 KiB/s 00:00 [######################] 100%
+mesa-20.2.1-1-x86_64    2.6 MiB  4.35 MiB/s 00:03 [###-------------------]  16% mesa-20.2.1-1-x86_64   14.2 MiB  22.2 MiB/s 00:00 [###################---]  87% mesa-20.2.1-1-x86_64   16.2 MiB  35.2 MiB/s 00:00 [######################] 100%
+libstemmer-0+713...   110.8 KiB  2.30 MiB/s 00:00 [######################] 100%
+libsoup-2.72.0+5...   590.2 KiB  4.84 MiB/s 00:00 [######################] 100%
+tracker3-3.0.1-1...   788.7 KiB  6.58 MiB/s 00:00 [######################] 100%
+libcloudprovider...    61.9 KiB  1769 KiB/s 00:00 [######################] 100%
+js78-78.4.0-1-x86_64    3.0 MiB  4.86 MiB/s 00:01 [######----------------]  28% js78-78.4.0-1-x86_64   10.6 MiB  29.0 MiB/s 00:00 [######################] 100%
+polkit-0.118-1-x...   402.1 KiB  4.32 MiB/s 00:00 [######################] 100%
+xkeyboard-config...   712.7 KiB  5.57 MiB/s 00:00 [######################] 100%
+gtk3-1:3.24.23-4...  2000.0 KiB  3.13 MiB/s 00:02 [###-------------------]  17% gtk3-1:3.24.23-4...     5.0 MiB  6.99 MiB/s 00:00 [#########-------------]  44% gtk3-1:3.24.23-4...     8.1 MiB  9.69 MiB/s 00:00 [###############-------]  71% gtk3-1:3.24.23-4...    11.3 MiB  13.8 MiB/s 00:01 [######################] 100%
+openmpi-4.0.5-2-...  1984.0 KiB  3.21 MiB/s 00:00 [#############---------]  60% openmpi-4.0.5-2-...     3.2 MiB  11.4 MiB/s 00:00 [######################] 100%
+libinput-1.16.2-...   254.8 KiB  2.70 MiB/s 00:00 [######################] 100%
+libuv-1.40.0-1-x...   224.8 KiB  3.14 MiB/s 00:00 [######################] 100%
+lua-5.4.1-1-x86_64    273.4 KiB  3.30 MiB/s 00:00 [######################] 100%
+md4c-0.4.6-1-x86_64    81.2 KiB  2.33 MiB/s 00:00 [######################] 100%
+python-3.8.6-1-x...     3.8 MiB  6.41 MiB/s 00:04 [##--------------------]  12% python-3.8.6-1-x...    14.5 MiB  22.1 MiB/s 00:00 [##########------------]  48% python-3.8.6-1-x...    24.7 MiB  31.6 MiB/s 00:00 [#################-----]  81% python-3.8.6-1-x...    30.2 MiB  42.8 MiB/s 00:01 [######################] 100%
+python-setuptool...   561.6 KiB  5.22 MiB/s 00:00 [######################] 100%
+qt5-base-5.15.1-...     3.2 MiB  5.26 MiB/s 00:01 [#####-----------------]  24% qt5-base-5.15.1-...    12.9 MiB  33.7 MiB/s 00:00 [######################] 100%
+r-4.0.3-1-x86_64        3.4 MiB  5.73 MiB/s 00:06 [#---------------------]   8% r-4.0.3-1-x86_64       16.2 MiB  25.1 MiB/s 00:01 [########--------------]  39% r-4.0.3-1-x86_64       28.5 MiB  37.3 MiB/s 00:00 [##############--------]  68% r-4.0.3-1-x86_64       40.1 MiB  44.2 MiB/s 00:00 [#####################-]  96% r-4.0.3-1-x86_64       41.5 MiB  49.2 MiB/s 00:01 [######################] 100%
+otf-latin-modern...  1792.0 KiB  2.92 MiB/s 00:00 [##############--------]  68% otf-latin-modern...     2.6 MiB  11.4 MiB/s 00:00 [######################] 100%
+fzf-0.23.1-1-x86_64  1020.6 KiB  6.15 MiB/s 00:00 [######################] 100%
+go-2:1.15.3-1-x86_64 1216.0 KiB  2027 KiB/s 01:03 [----------------------]   0% go-2:1.15.3-1-x86_64    3.0 MiB  4.35 MiB/s 00:28 [----------------------]   2% go-2:1.15.3-1-x86_64    5.0 MiB  6.22 MiB/s 00:19 [----------------------]   3% go-2:1.15.3-1-x86_64    7.2 MiB  7.67 MiB/s 00:15 [#---------------------]   5% go-2:1.15.3-1-x86_64    9.4 MiB  8.76 MiB/s 00:13 [#---------------------]   7% go-2:1.15.3-1-x86_64   11.6 MiB  9.62 MiB/s 00:12 [#---------------------]   9% go-2:1.15.3-1-x86_64   14.0 MiB  10.3 MiB/s 00:10 [##--------------------]  10% go-2:1.15.3-1-x86_64   16.4 MiB  10.8 MiB/s 00:10 [##--------------------]  12% go-2:1.15.3-1-x86_64   18.9 MiB  11.4 MiB/s 00:09 [###-------------------]  14% go-2:1.15.3-1-x86_64   21.3 MiB  11.5 MiB/s 00:09 [###-------------------]  16% go-2:1.15.3-1-x86_64   23.8 MiB  11.7 MiB/s 00:08 [###-------------------]  18% go-2:1.15.3-1-x86_64   26.4 MiB  12.1 MiB/s 00:08 [####------------------]  20% go-2:1.15.3-1-x86_64   28.4 MiB  11.3 MiB/s 00:08 [####------------------]  22% go-2:1.15.3-1-x86_64   30.3 MiB  10.7 MiB/s 00:09 [#####-----------------]  23% go-2:1.15.3-1-x86_64   31.7 MiB  9.42 MiB/s 00:10 [#####-----------------]  24% go-2:1.15.3-1-x86_64   33.2 MiB  8.62 MiB/s 00:10 [#####-----------------]  25% go-2:1.15.3-1-x86_64   34.7 MiB  8.18 MiB/s 00:11 [#####-----------------]  27% go-2:1.15.3-1-x86_64   36.2 MiB  7.89 MiB/s 00:11 [######----------------]  28% go-2:1.15.3-1-x86_64   37.8 MiB  7.73 MiB/s 00:11 [######----------------]  29% go-2:1.15.3-1-x86_64   39.4 MiB  7.85 MiB/s 00:11 [######----------------]  30% go-2:1.15.3-1-x86_64   41.0 MiB  7.79 MiB/s 00:11 [#######---------------]  32% go-2:1.15.3-1-x86_64   42.7 MiB  7.89 MiB/s 00:10 [#######---------------]  33% go-2:1.15.3-1-x86_64   44.4 MiB  7.99 MiB/s 00:10 [#######---------------]  34% go-2:1.15.3-1-x86_64   46.2 MiB  8.23 MiB/s 00:09 [#######---------------]  36% go-2:1.15.3-1-x86_64   47.9 MiB  8.38 MiB/s 00:09 [########--------------]  37% go-2:1.15.3-1-x86_64   49.8 MiB  8.51 MiB/s 00:09 [########--------------]  38% go-2:1.15.3-1-x86_64   51.6 MiB  8.78 MiB/s 00:08 [########--------------]  40% go-2:1.15.3-1-x86_64   53.5 MiB  8.93 MiB/s 00:08 [#########-------------]  41% go-2:1.15.3-1-x86_64   55.5 MiB  9.13 MiB/s 00:07 [#########-------------]  43% go-2:1.15.3-1-x86_64   57.5 MiB  9.24 MiB/s 00:07 [#########-------------]  45% go-2:1.15.3-1-x86_64   59.5 MiB  9.55 MiB/s 00:07 [##########------------]  46% go-2:1.15.3-1-x86_64   61.6 MiB  9.74 MiB/s 00:06 [##########------------]  48% go-2:1.15.3-1-x86_64   63.7 MiB  9.99 MiB/s 00:06 [##########------------]  49% go-2:1.15.3-1-x86_64   65.9 MiB  10.3 MiB/s 00:06 [###########-----------]  51% go-2:1.15.3-1-x86_64   68.1 MiB  10.5 MiB/s 00:05 [###########-----------]  53% go-2:1.15.3-1-x86_64   70.3 MiB  10.6 MiB/s 00:05 [############----------]  55% go-2:1.15.3-1-x86_64   72.6 MiB  10.9 MiB/s 00:05 [############----------]  56% go-2:1.15.3-1-x86_64   74.9 MiB  11.1 MiB/s 00:04 [############----------]  58% go-2:1.15.3-1-x86_64   77.3 MiB  11.3 MiB/s 00:04 [#############---------]  60% go-2:1.15.3-1-x86_64   79.8 MiB  11.7 MiB/s 00:04 [#############---------]  62% go-2:1.15.3-1-x86_64   82.2 MiB  11.7 MiB/s 00:03 [##############--------]  64% go-2:1.15.3-1-x86_64   84.6 MiB  11.9 MiB/s 00:03 [##############--------]  66% go-2:1.15.3-1-x86_64   87.1 MiB  12.0 MiB/s 00:03 [##############--------]  68% go-2:1.15.3-1-x86_64   89.8 MiB  12.4 MiB/s 00:03 [###############-------]  70% go-2:1.15.3-1-x86_64   92.5 MiB  12.7 MiB/s 00:02 [###############-------]  72% go-2:1.15.3-1-x86_64   95.2 MiB  13.0 MiB/s 00:02 [################------]  74% go-2:1.15.3-1-x86_64   97.9 MiB  13.2 MiB/s 00:02 [################------]  76% go-2:1.15.3-1-x86_64  100.6 MiB  13.3 MiB/s 00:02 [#################-----]  78% go-2:1.15.3-1-x86_64  103.4 MiB  13.5 MiB/s 00:01 [#################-----]  80% go-2:1.15.3-1-x86_64  106.3 MiB  13.8 MiB/s 00:01 [##################----]  83% go-2:1.15.3-1-x86_64  109.3 MiB  14.2 MiB/s 00:01 [##################----]  85% go-2:1.15.3-1-x86_64  112.3 MiB  14.4 MiB/s 00:01 [###################---]  87% go-2:1.15.3-1-x86_64  115.3 MiB  14.6 MiB/s 00:00 [###################---]  90% go-2:1.15.3-1-x86_64  118.3 MiB  14.8 MiB/s 00:00 [####################--]  92% go-2:1.15.3-1-x86_64  121.5 MiB  15.1 MiB/s 00:00 [####################--]  95% go-2:1.15.3-1-x86_64  124.7 MiB  15.4 MiB/s 00:00 [#####################-]  97% go-2:1.15.3-1-x86_64  127.7 MiB  11.1 MiB/s 00:12 [######################] 100%
+julia-2:1.5.2-1-...     4.2 MiB  6.95 MiB/s 00:02 [###-------------------]  17% julia-2:1.5.2-1-...    14.0 MiB  20.9 MiB/s 00:00 [############----------]  59% julia-2:1.5.2-1-...    23.0 MiB  29.1 MiB/s 00:00 [#####################-]  97% julia-2:1.5.2-1-...    23.5 MiB  37.9 MiB/s 00:01 [######################] 100%
+nodejs-14.14.0-1...     3.5 MiB  5.89 MiB/s 00:00 [#########-------------]  45% nodejs-14.14.0-1...     7.7 MiB  23.5 MiB/s 00:00 [######################] 100%
+python-colorama-...    24.9 KiB  2.03 MiB/s 00:00 [######################] 100%
+( 1/71) checking keys in keyring                   [----------------------]   1%( 2/71) checking keys in keyring                   [----------------------]   2%( 3/71) checking keys in keyring                   [----------------------]   4%( 4/71) checking keys in keyring                   [#---------------------]   5%( 5/71) checking keys in keyring                   [#---------------------]   7%( 6/71) checking keys in keyring                   [#---------------------]   8%( 7/71) checking keys in keyring                   [#---------------------]   9%( 8/71) checking keys in keyring                   [##--------------------]  11%( 9/71) checking keys in keyring                   [##--------------------]  12%(10/71) checking keys in keyring                   [###-------------------]  14%(11/71) checking keys in keyring                   [###-------------------]  15%(12/71) checking keys in keyring                   [###-------------------]  16%(13/71) checking keys in keyring                   [###-------------------]  18%(14/71) checking keys in keyring                   [####------------------]  19%(15/71) checking keys in keyring                   [####------------------]  21%(16/71) checking keys in keyring                   [####------------------]  22%(17/71) checking keys in keyring                   [#####-----------------]  23%(18/71) checking keys in keyring                   [#####-----------------]  25%(19/71) checking keys in keyring                   [#####-----------------]  26%(20/71) checking keys in keyring                   [######----------------]  28%(21/71) checking keys in keyring                   [######----------------]  29%(22/71) checking keys in keyring                   [######----------------]  30%(23/71) checking keys in keyring                   [#######---------------]  32%(24/71) checking keys in keyring                   [#######---------------]  33%(25/71) checking keys in keyring                   [#######---------------]  35%(26/71) checking keys in keyring                   [#######---------------]  36%(27/71) checking keys in keyring                   [########--------------]  38%(28/71) checking keys in keyring                   [########--------------]  39%(29/71) checking keys in keyring                   [########--------------]  40%(30/71) checking keys in keyring                   [#########-------------]  42%(31/71) checking keys in keyring                   [#########-------------]  43%(32/71) checking keys in keyring                   [#########-------------]  45%(33/71) checking keys in keyring                   [##########------------]  46%(34/71) checking keys in keyring                   [##########------------]  47%(35/71) checking keys in keyring                   [##########------------]  49%(36/71) checking keys in keyring                   [###########-----------]  50%(37/71) checking keys in keyring                   [###########-----------]  52%(38/71) checking keys in keyring                   [###########-----------]  53%(39/71) checking keys in keyring                   [###########-----------]  54%(40/71) checking keys in keyring                   [############----------]  56%(41/71) checking keys in keyring                   [############----------]  57%(42/71) checking keys in keyring                   [############----------]  59%(43/71) checking keys in keyring                   [#############---------]  60%(44/71) checking keys in keyring                   [#############---------]  61%(45/71) checking keys in keyring                   [#############---------]  63%(46/71) checking keys in keyring                   [##############--------]  64%(47/71) checking keys in keyring                   [##############--------]  66%(48/71) checking keys in keyring                   [##############--------]  67%(49/71) checking keys in keyring                   [###############-------]  69%(50/71) checking keys in keyring                   [###############-------]  70%(51/71) checking keys in keyring                   [###############-------]  71%(52/71) checking keys in keyring                   [################------]  73%(53/71) checking keys in keyring                   [################------]  74%(54/71) checking keys in keyring                   [################------]  76%(55/71) checking keys in keyring                   [################------]  77%(56/71) checking keys in keyring                   [#################-----]  78%(57/71) checking keys in keyring                   [#################-----]  80%(58/71) checking keys in keyring                   [#################-----]  81%(59/71) checking keys in keyring                   [##################----]  83%(60/71) checking keys in keyring                   [##################----]  84%(61/71) checking keys in keyring                   [##################----]  85%(62/71) checking keys in keyring                   [###################---]  87%(63/71) checking keys in keyring                   [###################---]  88%(64/71) checking keys in keyring                   [###################---]  90%(65/71) checking keys in keyring                   [####################--]  91%(66/71) checking keys in keyring                   [####################--]  92%(67/71) checking keys in keyring                   [####################--]  94%(68/71) checking keys in keyring                   [####################--]  95%(69/71) checking keys in keyring                   [#####################-]  97%(70/71) checking keys in keyring                   [#####################-]  98%(71/71) checking keys in keyring                   [######################] 100%
+( 1/71) checking package integrity                 [----------------------]   0%( 2/71) checking package integrity                 [----------------------]   0%( 3/71) checking package integrity                 [----------------------]   0%( 4/71) checking package integrity                 [----------------------]   0%( 5/71) checking package integrity                 [----------------------]   2%( 6/71) checking package integrity                 [#---------------------]   9%( 7/71) checking package integrity                 [##--------------------]  10%( 8/71) checking package integrity                 [##--------------------]  10%( 9/71) checking package integrity                 [##--------------------]  10%(10/71) checking package integrity                 [##--------------------]  10%(11/71) checking package integrity                 [##--------------------]  10%(12/71) checking package integrity                 [##--------------------]  10%(13/71) checking package integrity                 [##--------------------]  11%(14/71) checking package integrity                 [##--------------------]  11%(15/71) checking package integrity                 [##--------------------]  13%(16/71) checking package integrity                 [##--------------------]  13%(17/71) checking package integrity                 [##--------------------]  13%(18/71) checking package integrity                 [###-------------------]  14%(19/71) checking package integrity                 [###-------------------]  14%(20/71) checking package integrity                 [###-------------------]  14%(21/71) checking package integrity                 [###-------------------]  14%(22/71) checking package integrity                 [###-------------------]  14%(23/71) checking package integrity                 [###-------------------]  17%(24/71) checking package integrity                 [###-------------------]  18%(25/71) checking package integrity                 [###-------------------]  18%(26/71) checking package integrity                 [###-------------------]  18%(27/71) checking package integrity                 [###-------------------]  18%(28/71) checking package integrity                 [###-------------------]  18%(29/71) checking package integrity                 [####------------------]  19%(30/71) checking package integrity                 [####------------------]  19%(31/71) checking package integrity                 [####------------------]  19%(32/71) checking package integrity                 [####------------------]  20%(33/71) checking package integrity                 [####------------------]  20%(34/71) checking package integrity                 [####------------------]  20%(35/71) checking package integrity                 [####------------------]  20%(36/71) checking package integrity                 [####------------------]  20%(37/71) checking package integrity                 [######----------------]  28%(38/71) checking package integrity                 [######----------------]  28%(39/71) checking package integrity                 [######----------------]  31%(40/71) checking package integrity                 [#######---------------]  33%(41/71) checking package integrity                 [#############---------]  61%(42/71) checking package integrity                 [#############---------]  61%(43/71) checking package integrity                 [#############---------]  61%(44/71) checking package integrity                 [##############--------]  65%(45/71) checking package integrity                 [##############--------]  65%(46/71) checking package integrity                 [##############--------]  65%(47/71) checking package integrity                 [##############--------]  65%(48/71) checking package integrity                 [##############--------]  65%(49/71) checking package integrity                 [##############--------]  65%(50/71) checking package integrity                 [##############--------]  67%(51/71) checking package integrity                 [###############-------]  69%(52/71) checking package integrity                 [###############-------]  69%(53/71) checking package integrity                 [###############-------]  69%(54/71) checking package integrity                 [###############-------]  72%(55/71) checking package integrity                 [###############-------]  72%(56/71) checking package integrity                 [###############-------]  72%(57/71) checking package integrity                 [################------]  73%(58/71) checking package integrity                 [#################-----]  78%(59/71) checking package integrity                 [#################-----]  78%(60/71) checking package integrity                 [#################-----]  78%(61/71) checking package integrity                 [#################-----]  78%(62/71) checking package integrity                 [#################-----]  78%(63/71) checking package integrity                 [#################-----]  78%(64/71) checking package integrity                 [#################-----]  80%(65/71) checking package integrity                 [#################-----]  80%(66/71) checking package integrity                 [###################---]  87%(67/71) checking package integrity                 [###################---]  87%(68/71) checking package integrity                 [###################---]  87%(69/71) checking package integrity                 [###################---]  90%(70/71) checking package integrity                 [#####################-]  99%(71/71) checking package integrity                 [######################] 100%
+( 1/71) loading package files                      [----------------------]   0%( 2/71) loading package files                      [----------------------]   0%( 3/71) loading package files                      [----------------------]   0%( 4/71) loading package files                      [----------------------]   0%( 5/71) loading package files                      [----------------------]   2%( 6/71) loading package files                      [#---------------------]   9%( 7/71) loading package files                      [##--------------------]  10%( 8/71) loading package files                      [##--------------------]  10%( 9/71) loading package files                      [##--------------------]  10%(10/71) loading package files                      [##--------------------]  10%(11/71) loading package files                      [##--------------------]  10%(12/71) loading package files                      [##--------------------]  10%(13/71) loading package files                      [##--------------------]  11%(14/71) loading package files                      [##--------------------]  11%(15/71) loading package files                      [##--------------------]  13%(16/71) loading package files                      [##--------------------]  13%(17/71) loading package files                      [##--------------------]  13%(18/71) loading package files                      [###-------------------]  14%(19/71) loading package files                      [###-------------------]  14%(20/71) loading package files                      [###-------------------]  14%(21/71) loading package files                      [###-------------------]  14%(22/71) loading package files                      [###-------------------]  14%(23/71) loading package files                      [###-------------------]  17%(24/71) loading package files                      [###-------------------]  18%(25/71) loading package files                      [###-------------------]  18%(26/71) loading package files                      [###-------------------]  18%(27/71) loading package files                      [###-------------------]  18%(28/71) loading package files                      [###-------------------]  18%(29/71) loading package files                      [####------------------]  19%(30/71) loading package files                      [####------------------]  19%(31/71) loading package files                      [####------------------]  19%(32/71) loading package files                      [####------------------]  20%(33/71) loading package files                      [####------------------]  20%(34/71) loading package files                      [####------------------]  20%(35/71) loading package files                      [####------------------]  20%(36/71) loading package files                      [####------------------]  20%(37/71) loading package files                      [######----------------]  28%(38/71) loading package files                      [######----------------]  28%(39/71) loading package files                      [######----------------]  31%(40/71) loading package files                      [#######---------------]  33%(41/71) loading package files                      [#############---------]  61%(42/71) loading package files                      [#############---------]  61%(43/71) loading package files                      [#############---------]  61%(44/71) loading package files                      [##############--------]  65%(45/71) loading package files                      [##############--------]  65%(46/71) loading package files                      [##############--------]  65%(47/71) loading package files                      [##############--------]  65%(48/71) loading package files                      [##############--------]  65%(49/71) loading package files                      [##############--------]  65%(50/71) loading package files                      [##############--------]  67%(51/71) loading package files                      [###############-------]  69%(52/71) loading package files                      [###############-------]  69%(53/71) loading package files                      [###############-------]  69%(54/71) loading package files                      [###############-------]  72%(55/71) loading package files                      [###############-------]  72%(56/71) loading package files                      [###############-------]  72%(57/71) loading package files                      [################------]  73%(58/71) loading package files                      [#################-----]  78%(59/71) loading package files                      [#################-----]  78%(60/71) loading package files                      [#################-----]  78%(61/71) loading package files                      [#################-----]  78%(62/71) loading package files                      [#################-----]  78%(63/71) loading package files                      [#################-----]  78%(64/71) loading package files                      [#################-----]  80%(65/71) loading package files                      [#################-----]  80%(66/71) loading package files                      [###################---]  87%(67/71) loading package files                      [###################---]  87%(68/71) loading package files                      [###################---]  87%(69/71) loading package files                      [###################---]  90%(70/71) loading package files                      [#####################-]  99%(71/71) loading package files                      [######################] 100%
+( 1/71) checking for file conflicts                [----------------------]   1%( 2/71) checking for file conflicts                [----------------------]   2%( 3/71) checking for file conflicts                [----------------------]   4%( 4/71) checking for file conflicts                [#---------------------]   5%( 5/71) checking for file conflicts                [#---------------------]   7%( 6/71) checking for file conflicts                [#---------------------]   8%( 7/71) checking for file conflicts                [#---------------------]   9%( 8/71) checking for file conflicts                [##--------------------]  11%( 9/71) checking for file conflicts                [##--------------------]  12%(10/71) checking for file conflicts                [###-------------------]  14%(11/71) checking for file conflicts                [###-------------------]  15%(12/71) checking for file conflicts                [###-------------------]  16%(13/71) checking for file conflicts                [###-------------------]  18%(14/71) checking for file conflicts                [####------------------]  19%(15/71) checking for file conflicts                [####------------------]  21%(16/71) checking for file conflicts                [####------------------]  22%(17/71) checking for file conflicts                [#####-----------------]  23%(18/71) checking for file conflicts                [#####-----------------]  25%(19/71) checking for file conflicts                [#####-----------------]  26%(20/71) checking for file conflicts                [######----------------]  28%(21/71) checking for file conflicts                [######----------------]  29%(22/71) checking for file conflicts                [######----------------]  30%(23/71) checking for file conflicts                [#######---------------]  32%(24/71) checking for file conflicts                [#######---------------]  33%(25/71) checking for file conflicts                [#######---------------]  35%(26/71) checking for file conflicts                [#######---------------]  36%(27/71) checking for file conflicts                [########--------------]  38%(28/71) checking for file conflicts                [########--------------]  39%(29/71) checking for file conflicts                [########--------------]  40%(30/71) checking for file conflicts                [#########-------------]  42%(31/71) checking for file conflicts                [#########-------------]  43%(32/71) checking for file conflicts                [#########-------------]  45%(33/71) checking for file conflicts                [##########------------]  46%(34/71) checking for file conflicts                [##########------------]  47%(35/71) checking for file conflicts                [##########------------]  49%(36/71) checking for file conflicts                [###########-----------]  50%(37/71) checking for file conflicts                [###########-----------]  52%(38/71) checking for file conflicts                [###########-----------]  53%(39/71) checking for file conflicts                [###########-----------]  54%(40/71) checking for file conflicts                [############----------]  56%(41/71) checking for file conflicts                [############----------]  57%(42/71) checking for file conflicts                [############----------]  59%(43/71) checking for file conflicts                [#############---------]  60%(44/71) checking for file conflicts                [#############---------]  61%(45/71) checking for file conflicts                [#############---------]  63%(46/71) checking for file conflicts                [##############--------]  64%(47/71) checking for file conflicts                [##############--------]  66%(48/71) checking for file conflicts                [##############--------]  67%(49/71) checking for file conflicts                [###############-------]  69%(50/71) checking for file conflicts                [###############-------]  70%(51/71) checking for file conflicts                [###############-------]  71%(52/71) checking for file conflicts                [################------]  73%(53/71) checking for file conflicts                [################------]  74%(54/71) checking for file conflicts                [################------]  76%(55/71) checking for file conflicts                [################------]  77%(56/71) checking for file conflicts                [#################-----]  78%(57/71) checking for file conflicts                [#################-----]  80%(58/71) checking for file conflicts                [#################-----]  81%(59/71) checking for file conflicts                [##################----]  83%(60/71) checking for file conflicts                [##################----]  84%(61/71) checking for file conflicts                [##################----]  85%(62/71) checking for file conflicts                [###################---]  87%(63/71) checking for file conflicts                [###################---]  88%(64/71) checking for file conflicts                [###################---]  90%(65/71) checking for file conflicts                [####################--]  91%(66/71) checking for file conflicts                [####################--]  92%(67/71) checking for file conflicts                [####################--]  94%(68/71) checking for file conflicts                [####################--]  95%(69/71) checking for file conflicts                [#####################-]  97%(70/71) checking for file conflicts                [#####################-]  98%(71/71) checking for file conflicts                [######################] 100%
+( 1/71) checking available disk space              [----------------------]   1%( 2/71) checking available disk space              [----------------------]   2%( 3/71) checking available disk space              [----------------------]   4%( 4/71) checking available disk space              [#---------------------]   5%( 5/71) checking available disk space              [#---------------------]   7%( 6/71) checking available disk space              [#---------------------]   8%( 7/71) checking available disk space              [#---------------------]   9%( 8/71) checking available disk space              [##--------------------]  11%( 9/71) checking available disk space              [##--------------------]  12%(10/71) checking available disk space              [###-------------------]  14%(11/71) checking available disk space              [###-------------------]  15%(12/71) checking available disk space              [###-------------------]  16%(13/71) checking available disk space              [###-------------------]  18%(14/71) checking available disk space              [####------------------]  19%(15/71) checking available disk space              [####------------------]  21%(16/71) checking available disk space              [####------------------]  22%(17/71) checking available disk space              [#####-----------------]  23%(18/71) checking available disk space              [#####-----------------]  25%(19/71) checking available disk space              [#####-----------------]  26%(20/71) checking available disk space              [######----------------]  28%(21/71) checking available disk space              [######----------------]  29%(22/71) checking available disk space              [######----------------]  30%(23/71) checking available disk space              [#######---------------]  32%(24/71) checking available disk space              [#######---------------]  33%(25/71) checking available disk space              [#######---------------]  35%(26/71) checking available disk space              [#######---------------]  36%(27/71) checking available disk space              [########--------------]  38%(28/71) checking available disk space              [########--------------]  39%(29/71) checking available disk space              [########--------------]  40%(30/71) checking available disk space              [#########-------------]  42%(31/71) checking available disk space              [#########-------------]  43%(32/71) checking available disk space              [#########-------------]  45%(33/71) checking available disk space              [##########------------]  46%(34/71) checking available disk space              [##########------------]  47%(35/71) checking available disk space              [##########------------]  49%(36/71) checking available disk space              [###########-----------]  50%(37/71) checking available disk space              [###########-----------]  52%(38/71) checking available disk space              [###########-----------]  53%(39/71) checking available disk space              [###########-----------]  54%(40/71) checking available disk space              [############----------]  56%(41/71) checking available disk space              [############----------]  57%(42/71) checking available disk space              [############----------]  59%(43/71) checking available disk space              [#############---------]  60%(44/71) checking available disk space              [#############---------]  61%(45/71) checking available disk space              [#############---------]  63%(46/71) checking available disk space              [##############--------]  64%(47/71) checking available disk space              [##############--------]  66%(48/71) checking available disk space              [##############--------]  67%(49/71) checking available disk space              [###############-------]  69%(50/71) checking available disk space              [###############-------]  70%(51/71) checking available disk space              [###############-------]  71%(52/71) checking available disk space              [################------]  73%(53/71) checking available disk space              [################------]  74%(54/71) checking available disk space              [################------]  76%(55/71) checking available disk space              [################------]  77%(56/71) checking available disk space              [#################-----]  78%(57/71) checking available disk space              [#################-----]  80%(58/71) checking available disk space              [#################-----]  81%(59/71) checking available disk space              [##################----]  83%(60/71) checking available disk space              [##################----]  84%(61/71) checking available disk space              [##################----]  85%(62/71) checking available disk space              [###################---]  87%(63/71) checking available disk space              [###################---]  88%(64/71) checking available disk space              [###################---]  90%(65/71) checking available disk space              [####################--]  91%(66/71) checking available disk space              [####################--]  92%(67/71) checking available disk space              [####################--]  94%(68/71) checking available disk space              [####################--]  95%(69/71) checking available disk space              [#####################-]  97%(70/71) checking available disk space              [#####################-]  98%(71/71) checking available disk space              [######################] 100%
+:: Processing package changes...
+( 1/71) installing otf-latin-modern                [######################] 100%
+( 2/71) upgrading tzdata                           [####################--]  91%( 2/71) upgrading tzdata                           [######################] 100%
+( 3/71) upgrading iana-etc                         [######################] 100%
+( 4/71) upgrading filesystem                       [######################] 100%
+( 5/71) upgrading glibc                            [################------]  74%( 5/71) upgrading glibc                            [######################] 100%
+Generating locales...
+  en_US.UTF-8... done
+Generation complete.
+( 6/71) upgrading gcc-libs                         [----------------------]   0%( 6/71) upgrading gcc-libs                         [----------------------]   0%( 6/71) upgrading gcc-libs                         [----------------------]   0%( 6/71) upgrading gcc-libs                         [----------------------]   0%( 6/71) upgrading gcc-libs                         [----------------------]   0%( 6/71) upgrading gcc-libs                         [----------------------]   0%( 6/71) upgrading gcc-libs                         [----------------------]   0%( 6/71) upgrading gcc-libs                         [----------------------]   0%( 6/71) upgrading gcc-libs                         [###########-----------]  54%( 6/71) upgrading gcc-libs                         [#####################-]  98%( 6/71) upgrading gcc-libs                         [######################] 100%
+( 7/71) upgrading glib2                            [######################] 100%
+( 8/71) upgrading expat                            [######################] 100%
+( 9/71) upgrading freetype2                        [######################] 100%
+(10/71) upgrading xcb-proto                        [######################] 100%
+(11/71) upgrading pango                            [######################] 100%
+(12/71) upgrading libjpeg-turbo                    [######################] 100%
+New optional dependencies for libjpeg-turbo
+11: for TurboJPEG Java wrapper
+(13/71) upgrading librsvg                          [######################] 100%
+(14/71) upgrading gtk-update-icon-cache            [######################] 100%
+(15/71) upgrading adwaita-icon-theme               [#####-----------------]  26%(15/71) upgrading adwaita-icon-theme               [##################----]  85%(15/71) upgrading adwaita-icon-theme               [#####################-]  99%(15/71) upgrading adwaita-icon-theme               [######################] 100%
+(16/71) upgrading alsa-topology-conf               [######################] 100%
+(17/71) upgrading alsa-ucm-conf                    [######################] 100%
+(18/71) upgrading alsa-lib                         [######################] 100%
+(19/71) upgrading libcap                           [######################] 100%
+(20/71) upgrading systemd-libs                     [######################] 100%
+(21/71) upgrading libcap-ng                        [######################] 100%
+(22/71) upgrading e2fsprogs                        [######################] 100%
+(23/71) upgrading perl                             [----------------------]   0%(23/71) upgrading perl                             [----------------------]   0%(23/71) upgrading perl                             [###########-----------]  53%(23/71) upgrading perl                             [####################--]  93%(23/71) upgrading perl                             [######################] 100%
+(24/71) upgrading openssl                          [##################----]  82%(24/71) upgrading openssl                          [######################] 100%
+(25/71) upgrading libldap                          [######################] 100%
+(26/71) upgrading at-spi2-core                     [######################] 100%
+(27/71) upgrading at-spi2-atk                      [######################] 100%
+(28/71) upgrading ca-certificates-mozilla          [######################] 100%
+(29/71) upgrading curl                             [######################] 100%
+(30/71) upgrading libelf                           [######################] 100%
+(31/71) upgrading elfutils                         [######################] 100%
+(32/71) upgrading binutils                         [######################] 100%
+(33/71) upgrading bison                            [######################] 100%
+(34/71) upgrading brotli                           [######################] 100%
+(35/71) upgrading dnssec-anchors                   [######################] 100%
+(36/71) upgrading fzf                              [######################] 100%
+(37/71) upgrading gcc                              [----------------------]   0%(37/71) upgrading gcc                              [----------------------]   0%(37/71) upgrading gcc                              [----------------------]   0%(37/71) upgrading gcc                              [----------------------]   0%(37/71) upgrading gcc                              [----------------------]   0%(37/71) upgrading gcc                              [----------------------]   0%(37/71) upgrading gcc                              [#######---------------]  36%(37/71) upgrading gcc                              [################------]  77%(37/71) upgrading gcc                              [####################--]  95%(37/71) upgrading gcc                              [######################] 100%
+(38/71) upgrading libusb                           [######################] 100%
+(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [----------------------]   0%(39/71) upgrading ghostscript                      [#####################-]  99%(39/71) upgrading ghostscript                      [######################] 100%
+(40/71) upgrading git                              [######################] 100%
+(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [----------------------]   0%(41/71) upgrading go                               [##--------------------]  12%(41/71) upgrading go                               [###-------------------]  18%(41/71) upgrading go                               [#####-----------------]  26%(41/71) upgrading go                               [#######---------------]  32%(41/71) upgrading go                               [#########-------------]  43%(41/71) upgrading go                               [##########------------]  48%(41/71) upgrading go                               [###########-----------]  53%(41/71) upgrading go                               [############----------]  58%(41/71) upgrading go                               [###############-------]  69%(41/71) upgrading go                               [################------]  77%(41/71) upgrading go                               [##################----]  86%(41/71) upgrading go                               [###################---]  90%(41/71) upgrading go                               [####################--]  91%(41/71) upgrading go                               [####################--]  94%(41/71) upgrading go                               [#####################-]  96%(41/71) upgrading go                               [#####################-]  98%(41/71) upgrading go                               [######################] 100%
+(42/71) upgrading gpm                              [######################] 100%
+(43/71) upgrading vulkan-icd-loader                [######################] 100%
+(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [----------------------]   0%(44/71) upgrading mesa                             [###########-----------]  52%(44/71) upgrading mesa                             [#################-----]  79%(44/71) upgrading mesa                             [######################] 100%
+(45/71) installing libstemmer                      [######################] 100%
+(46/71) upgrading libsoup                          [######################] 100%
+(47/71) installing tracker3                        [######################] 100%
+(48/71) installing libcloudproviders               [######################] 100%
+(49/71) upgrading libpcap                          [######################] 100%
+(50/71) upgrading systemd                          [################------]  73%(50/71) upgrading systemd                          [######################] 100%
+(51/71) installing js78                            [----------------------]   0%(51/71) installing js78                            [----------------------]   0%(51/71) installing js78                            [----------------------]   0%(51/71) installing js78                            [----------------------]   0%(51/71) installing js78                            [----------------------]   0%(51/71) installing js78                            [----------------------]   0%(51/71) installing js78                            [#################-----]  81%(51/71) installing js78                            [######################] 100%
+(52/71) upgrading polkit                           [######################] 100%
+(53/71) upgrading xkeyboard-config                 [######################] 100%
+(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [----------------------]   0%(54/71) upgrading gtk3                             [##########------------]  47%(54/71) upgrading gtk3                             [######################] 100%
+(55/71) upgrading iproute2                         [######################] 100%
+(56/71) upgrading openssh                          [######################] 100%
+(57/71) upgrading openmpi                          [######################] 100%
+(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [----------------------]   0%(58/71) upgrading julia                            [##################----]  86%(58/71) upgrading julia                            [######################] 100%
+(59/71) upgrading libinput                         [######################] 100%
+(60/71) upgrading libsecret                        [######################] 100%
+(61/71) upgrading libuv                            [######################] 100%
+(62/71) upgrading lua                              [######################] 100%
+(63/71) upgrading md4c                             [######################] 100%
+(64/71) upgrading nodejs                           [######################] 100%
+(65/71) upgrading pacman-mirrorlist                [######################] 100%
+warning: /etc/pacman.d/mirrorlist installed as /etc/pacman.d/mirrorlist.pacnew
+(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [----------------------]   0%(66/71) upgrading python                           [################------]  76%(66/71) upgrading python                           [###################---]  90%(66/71) upgrading python                           [#####################-]  97%(66/71) upgrading python                           [######################] 100%
+(67/71) upgrading python-colorama                  [######################] 100%
+(68/71) upgrading python-setuptools                [######################] 100%
+(69/71) upgrading qt5-base                         [----------------------]   0%(69/71) upgrading qt5-base                         [----------------------]   0%(69/71) upgrading qt5-base                         [###-------------------]  17%(69/71) upgrading qt5-base                         [#####-----------------]  25%(69/71) upgrading qt5-base                         [####################--]  91%(69/71) upgrading qt5-base                         [######################] 100%
+(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [----------------------]   0%(70/71) upgrading r                                [####------------------]  22%(70/71) upgrading r                                [##############--------]  65%(70/71) upgrading r                                [###################---]  87%(70/71) upgrading r                                [######################] 100%
+(71/71) upgrading sudo                             [#############---------]  62%(71/71) upgrading sudo                             [######################] 100%
+:: Running post-transaction hooks...
+( 1/19) Creating system user accounts...
+( 2/19) Updating journal message catalog...
+( 3/19) Reloading system manager configuration...
+  Skipped: Current root is not booted.
+( 4/19) Updating udev hardware database...
+( 5/19) Applying kernel sysctl settings...
+  Skipped: Current root is not booted.
+( 6/19) Creating temporary files...
+/usr/lib/tmpfiles.d/journal-nocow.conf:26: Failed to resolve specifier: uninitialized /etc detected, skipping
+All rules containing unresolvable specifiers will be skipped.
+( 7/19) Reloading device manager configuration...
+  Skipped: Device manager is not running.
+( 8/19) Arming ConditionNeedsUpdate...
+( 9/19) Rebuilding certificate stores...
+(10/19) Reloading system bus configuration...
+  Skipped: Current root is not booted.
+(11/19) Warn about old perl modules
+(12/19) Updating fontconfig cache...
+(13/19) Probing GDK-Pixbuf loader modules...
+(14/19) Compiling GSettings XML schema files...
+(15/19) Probing GTK3 input method modules...
+(16/19) Updating icon theme caches...
+(17/19) Cleaning up package cache...
+(18/19) Updating the info directory file...
+(19/19) Updating the desktop file MIME type cache...
+#+end_example
+
+* Plotting setup
+:PROPERTIES:
+:header-args: :results output verbatim replace :session notebookscontainer-pbw :dir /ssh:notebooks-vm.us-central1-f.quarere|docker:klt-notebooks-vm-cjme:  :exports both  :eval never-export
+:CUSTOM_ID: plotting-setup
+:END:
+
+#+BEGIN_SRC python
+import time
+start_time = time.time()
+time.sleep(4)
+print("--- %s seconds ---" % (time.time() - start_time))
+#+END_SRC
+
+#+RESULTS:
+: --- 4.0041587352752686 seconds ---
+
+#+BEGIN_SRC python
+import matplotlib.pyplot as plt
+import matplotlib.font_manager
+matplotlib.font_manager.fontManager.addfont("/usr/share/fonts/OTF/lmsans10-regular.otf")
+matplotlib.font_manager.fontManager.addfont("/usr/share/fonts/OTF/lmroman10-regular.otf")
+plt.style.use('default') #reset default parameters
+# https://stackoverflow.com/a/3900167/446907
+plt.rcParams.update({'font.size': 16,
+                     'font.family': ['sans-serif'],
+                     'font.serif': ['Latin Modern Roman'] + plt.rcParams['font.serif'],
+                     'font.sans-serif': ['Latin Modern Sans'] + plt.rcParams['font.sans-serif']})
+#+END_SRC
+
+#+RESULTS:
 
 * Modeling process
   :PROPERTIES:
@@ -143,164 +449,153 @@ possible to providing a high quality mirror for natural systems?
 [[file:img/all.png]]
 
 #+BEGIN_HTML
-  <div>
-  <center>    
-  <img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/workflow/all/all.png" alt="Drawing" width="90%"/></center>
-  </div>
+<div>
+<center>
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/workflow/all/all.png" alt="Drawing" width="90%"/></center>
+</div>
 #+END_HTML
 
 * Load libraries
-  :PROPERTIES:
-  :CUSTOM_ID: load-libraries
-  :END:
-
-  #+BEGIN_SRC python
-  # %pylab inline
-  # import matplotlib.pyplot as plt
-  import pymc3 as pm
-  import pandas as pd
-  import scipy.stats as stats
-  import seaborn as sns
-  import theano.tensor as T
-  import theano
-  import numpy as np
-  # plt.style.use(['seaborn-talk'])
-  # plt.rcParams["figure.figsize"] = (10,8)
-  print(pm.__version__)
-  print(theano.__version__)
-  #+END_SRC
-
-  #+BEGIN_EXAMPLE
-  Populating the interactive namespace from numpy and matplotlib
-  #+END_EXAMPLE
-
-  #+BEGIN_EXAMPLE
-  //anaconda/envs/py36/lib/python3.6/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
-    from ._conv import register_converters as _register_converters
-  #+END_EXAMPLE
-
-  #+BEGIN_EXAMPLE
-  3.5
-  1.0.2
-  #+END_EXAMPLE
-
-** define colors
-   :PROPERTIES:
-   :CUSTOM_ID: define-colors
-   :END:
+:PROPERTIES:
+:header-args: :results output verbatim replace :session notebookscontainer-pbw :dir /ssh:notebooks-vm.us-central1-f.quarere|docker:klt-notebooks-vm-cjme:  :exports both  :eval never-export
+:CUSTOM_ID: load-libraries
+:END:
 
 #+BEGIN_SRC python
-  c_light ="#DCBCBC"
-  c_light_highlight ="#C79999"
-  c_mid ="#B97C7C"
-  c_mid_highlight ="#A25050"
-  c_dark ="#8F2727"
-  c_dark_highlight ="#7C0000"
+# %pylab inline
+# import matplotlib.pyplot as plt
+import pymc3 as pm
+import pandas as pd
+import scipy.stats as stats
+import seaborn as sns
+import theano.tensor as T
+import theano
+import numpy as np
+# plt.style.use(['seaborn-talk'])
+# plt.rcParams["figure.figsize"] = (10,8)
+print(pm.__version__)
+print(theano.__version__)
 #+END_SRC
 
-* Section 4.1
-  :PROPERTIES:
-  :CUSTOM_ID: section-41
-  :END:
+#+RESULTS:
+: 3.9.3
+: 1.0.5
 
-  Build a model that generates (Poisson) counts that may explain what we
-  have in our data
+** define colors
+:PROPERTIES:
+:CUSTOM_ID: define-colors
+:END:
+
+#+BEGIN_SRC python
+c_light ="#DCBCBC"
+c_light_highlight ="#C79999"
+c_mid ="#B97C7C"
+c_mid_highlight ="#A25050"
+c_dark ="#8F2727"
+c_dark_highlight ="#7C0000"
+#+END_SRC
+
+#+RESULTS:
+
+* Section 4.1
+:PROPERTIES:
+:CUSTOM_ID: section-41
+:END:
+
+Build a model that generates (Poisson) counts that may explain what we have in our data
 
 ** Example generative models
-   :PROPERTIES:
-   :CUSTOM_ID: example-generative-models
-   :END:
+:PROPERTIES:
+:CUSTOM_ID: example-generative-models
+:END:
+
 *** Univariate normal model
-    :PROPERTIES:
-    :CUSTOM_ID: univariate-normal-model
-    :END:
+:PROPERTIES:
+:CUSTOM_ID: univariate-normal-model
+:END:
 
-    From a very simple perspective, generative modeling refers to the situation in which we develop a candidate probabilistic specification of the process from which our data are generated. Usually this will include the specification of prior distributions over all first-order parameters.
+From a very simple perspective, generative modeling refers to the situation in which we develop a candidate probabilistic specification of the process from which our data are generated. Usually this will include the specification of prior distributions over all first-order parameters.
 
-    #+ATTR_ORG: :width 200
-    [[file:img/tikz-57bc0c88a2974f4c1e2335fe9edb88ff2efdf970.png]]
+#+ATTR_ORG: :width 200
+[[file:img/tikz-57bc0c88a2974f4c1e2335fe9edb88ff2efdf970.png]]
 
-    #+BEGIN_HTML
-    <div>
-    <center>
-    <img src="https://www.bayespy.org/_images/tikz-57bc0c88a2974f4c1e2335fe9edb88ff2efdf970.png" style="background-color:white;" alt="Drawing" width="10%"/></center>
-    </div>
-    #+END_HTML
+#+BEGIN_HTML
+<div>
+<center>
+<img src="https://www.bayespy.org/_images/tikz-57bc0c88a2974f4c1e2335fe9edb88ff2efdf970.png" style="background-color:white;" alt="Drawing" width="10%"/></center>
+</div>
+#+END_HTML
 
-    \begin{equation}
-    \begin{split}
-    p(\mathbf{y}|\mu,\tau) &= \prod^{9}_{n=0} \mathcal{N}(y_n|\mu,\tau) p(\mu) \\
-                           &= \mathcal{N}(\mu|0,10^{-6}) \\
-    p(\tau)                &= \mathcal{G}(\tau|10^{-6},10^{-6})
-    \end{split}
-    \end{equation}
+\begin{equation}
+\begin{split}
+p(\mathbf{y}|\mu,\tau) &= \prod^{9}_{n=0} \mathcal{N}(y_n|\mu,\tau) p(\mu) \\
+                        &= \mathcal{N}(\mu|0,10^{-6}) \\
+p(\tau)                &= \mathcal{G}(\tau|10^{-6},10^{-6})
+\end{split}
+\end{equation}
 
-    This happens to come from a library called [[https://github.com/bayespy/bayespy/blob/develop/doc/source/user_guide/quickstart.rst][bayespy]]. The best description I am aware of the syntax and semantics of graphical models via factor graph notation is in the [[https://github.com/jluttine/tikz-bayesnet][tikz-bayesnet]] library [[https://github.com/jluttine/tikz-bayesnet/blob/master/dietz-techreport.pdf][technical report]].
+This happens to come from a library called [[https://github.com/bayespy/bayespy/blob/develop/doc/source/user_guide/quickstart.rst][bayespy]]. The best description I am aware of the syntax and semantics of graphical models via factor graph notation is in the [[https://github.com/jluttine/tikz-bayesnet][tikz-bayesnet]] library [[https://github.com/jluttine/tikz-bayesnet/blob/master/dietz-techreport.pdf][technical report]].
 
 *** Multivariate normal models
-    :PROPERTIES:
-    :CUSTOM_ID: multivariate-normal-models
-    :END:
+:PROPERTIES:
+:CUSTOM_ID: multivariate-normal-models
+:END:
 
-    #+ATTR_ORG: :width 200
-    [[file:img/tikz-80a1db369be1f25b61ceacfff551dae2bdd331c3.png]]
+#+ATTR_ORG: :width 200
+[[file:img/tikz-80a1db369be1f25b61ceacfff551dae2bdd331c3.png]]
 
-    #+BEGIN_HTML
-    <div>
-    <center>
-    <img src="https://www.bayespy.org/_images/tikz-80a1db369be1f25b61ceacfff551dae2bdd331c3.png" style="background-color:white;" alt="Drawing" width="10%"/></center>
-    </div>
-    #+END_HTML
+#+BEGIN_HTML
+<div>
+<center>
+<img src="https://www.bayespy.org/_images/tikz-80a1db369be1f25b61ceacfff551dae2bdd331c3.png" style="background-color:white;" alt="Drawing" width="10%"/></center>
+</div>
+#+END_HTML
 
-    $$\mathbf{y}_{mn} \sim \mathcal{N}(\boldsymbol{\mu}, \mathbf{\Lambda}),\qquad m=0,\ldots,9, \quad n=0,\ldots,29.$$
+$$\mathbf{y}_{mn} \sim \mathcal{N}(\boldsymbol{\mu}, \mathbf{\Lambda}),\qquad m=0,\ldots,9, \quad n=0,\ldots,29.$$
 
-    #+ATTR_ORG: :width 300
-    [[file:img/tikz-97236981a2be663d10ade1ad85caa727621615db.png]]
+#+ATTR_ORG: :width 300
+[[file:img/tikz-97236981a2be663d10ade1ad85caa727621615db.png]]
 
-    #+BEGIN_HTML
-    <div>
-    <center>
-    <img src="https://www.bayespy.org/_images/tikz-97236981a2be663d10ade1ad85caa727621615db.png" style="background-color:white;" alt="Drawing" width="20%"/></center>
-    </div>
-    #+END_HTML
+#+BEGIN_HTML
+<div>
+<center>
+<img src="https://www.bayespy.org/_images/tikz-97236981a2be663d10ade1ad85caa727621615db.png" style="background-color:white;" alt="Drawing" width="20%"/></center>
+</div>
+#+END_HTML
 
-    $$\mathbf{y}_{mn} \sim \mathcal{N}(\boldsymbol{\mu}_m, \mathbf{\Lambda}_n),\qquad m=0,\ldots,9, \quad n=0,\ldots,29.$$
+$$\mathbf{y}_{mn} \sim \mathcal{N}(\boldsymbol{\mu}_m, \mathbf{\Lambda}_n),\qquad m=0,\ldots,9, \quad n=0,\ldots,29.$$
 
-    Note that these are for illustrative purposes of the manner in which our data can share parameters and we have not yet defined priors over our parameters.
+Note that these are for illustrative purposes of the manner in which our data can share parameters and we have not yet defined priors over our parameters.
 
 ** Our data
-   :PROPERTIES:
-   :CUSTOM_ID: our-data
-   :END:
+:PROPERTIES:
+:CUSTOM_ID: our-data
+:END:
 
-   #+BEGIN_SRC python
-   df = pd.read_csv('data.csv')
-   print(df.head())
-   df.shape
-   #+END_SRC
+#+BEGIN_SRC python
+df = pd.read_csv('data.csv')
+print(df.head())
+df.shape
+#+END_SRC
 
 ** Build a generative model
-   :PROPERTIES:
-   :CUSTOM_ID: build-a-generative-model
-   :END:
+:PROPERTIES:
+:CUSTOM_ID: build-a-generative-model
+:END:
 
-   #+BEGIN_SRC python
-   lbda  = np.linspace(0, 20, num=int(20/0.001))
+#+BEGIN_SRC python
+lbda  = np.linspace(0, 20, num=int(20/0.001))
 
-   plt.plot(lbda, stats.norm(loc=0,scale=6.44787).pdf(lbda), c=c_dark_highlight, lw=2)
-   plt.xlabel("lambda"); plt.ylabel("Prior Density"); plt.yticks([]);
+plt.plot(lbda, stats.norm(loc=0,scale=6.44787).pdf(lbda), c=c_dark_highlight, lw=2)
+plt.xlabel("lambda"); plt.ylabel("Prior Density"); plt.yticks([]);
 
+lbda99 = np.linspace(0, 15, num=int(15/0.001))
+plt.fill_between(lbda99,0.,y2=stats.norm(loc=0,scale=6.44787).pdf(lbda99),color=c_dark);
+plt.savefig("fig/prior-density-lambda.svg", bbox_inches="tight");
+# !inkscape fig/prior-density-lambda.svg --export-filename=fig/prior-density-lambda.pdf;
+#+END_SRC
 
-   lbda99 = np.linspace(0, 15, num=int(15/0.001))
-
-
-
-   plt.fill_between(lbda99,0.,y2=stats.norm(loc=0,scale=6.44787).pdf(lbda99),color=c_dark);
-   plt.savefig("fig/prior-density-lambda.svg", bbox_inches="tight");
-   !inkscape fig/prior-density-lambda.svg --export-filename=fig/prior-density-lambda.pdf;
-   #+END_SRC
-
-   In this case the complete Bayesian model is given by
+In this case the complete Bayesian model is given by
 
 $$
 \pi( y_{1}, \ldots, y_{N}, \lambda )
@@ -309,148 +604,145 @@ $$
 \cdot \text{HalfNormal} (\lambda \mid 6).
 $$
 
-   #+ATTR_ORG: :width 900
-   [[file:img/dgm.png]]
+#+ATTR_ORG: :width 900
+[[file:img/dgm.png]]
 
-     #+BEGIN_HTML
-   <div>
-   <center>
-   <img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/iter1/dgm/dgm.png" alt="Drawing" width="40%"/></center>
-   </div>
-   #+END_HTML
+#+BEGIN_HTML
+<div>
+<center>
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/iter1/dgm/dgm.png" alt="Drawing" width="40%"/></center>
+</div>
+#+END_HTML
 
-   #+BEGIN_SRC python
-   #WORKING
-       model = pm.Model()
-   N = 1000
-   R = 500
-   with model:
-       lbda = pm.HalfNormal("lbda",sd=6.44787)
+#+BEGIN_SRC python
+#WORKING
+model = pm.Model()
+N = 1000
+R = 500
+with model:
+    lbda = pm.HalfNormal("lbda",sd=6.44787)
+    y = pm.Poisson("y",mu=lbda,shape=(N,),observed=None)
+#+END_SRC
 
-       y = pm.Poisson("y",mu=lbda,shape=(N,),observed=None)
+#+BEGIN_SRC python
+with model:
+    trace = pm.sample_prior_predictive(samples=R)
+#+END_SRC
 
-   #+END_SRC
+#+BEGIN_SRC python
+simu_lbdas = trace['lbda']
+simu_ys = trace['y']
+#+END_SRC
 
-   #+BEGIN_SRC python
-   with model:
-       trace = pm.sample_prior_predictive(samples=R)
-   #+END_SRC
+#+BEGIN_SRC python
+print(simu_lbdas[0:9])
+print(simu_lbdas.shape)
+#+END_SRC
 
-   #+BEGIN_SRC python
-   simu_lbdas = trace['lbda']
-   simu_ys = trace['y']
-   #+END_SRC
-
-   #+BEGIN_SRC python
-   print(simu_lbdas[0:9])
-   print(simu_lbdas.shape)
-   #+END_SRC
-
-   #+BEGIN_SRC python
-   print(simu_ys[0:9])
-   print(simu_ys.shape)
-   #+END_SRC
+#+BEGIN_SRC python
+print(simu_ys[0:9])
+print(simu_ys.shape)
+#+END_SRC
 
 ** Plot prior predictive distribution
   :PROPERTIES:
   :CUSTOM_ID: plot-prior-predictive-distribution
   :END:
 
-  #+BEGIN_SRC python
-  x_max = 30
-  bins = np.arange(0,x_max)
-  bin_interp = np.linspace(0,x_max-1,num=(x_max-1)*10)
-  hists = np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 1, simu_ys)
+#+BEGIN_SRC python
+x_max = 30
+bins = np.arange(0,x_max)
+bin_interp = np.linspace(0,x_max-1,num=(x_max-1)*10)
+hists = np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 1, simu_ys)
 
-  prctiles = np.percentile(hists,np.linspace(10,90,num=9),axis=0)
-  prctiles_interp = np.repeat(prctiles, 10,axis=1)
-  #+END_SRC
+prctiles = np.percentile(hists,np.linspace(10,90,num=9),axis=0)
+prctiles_interp = np.repeat(prctiles, 10,axis=1)
+#+END_SRC
 
-  #+BEGIN_SRC python
-  for i,color in enumerate([c_light,c_light_highlight,c_mid,c_mid_highlight]):
-      plt.fill_between(bin_interp,prctiles_interp[i,:],prctiles_interp[-1-i,:],alpha=1.0,color=color);
+#+BEGIN_SRC python
+for i,color in enumerate([c_light,c_light_highlight,c_mid,c_mid_highlight]):
+    plt.fill_between(bin_interp,prctiles_interp[i,:],prctiles_interp[-1-i,:],alpha=1.0,color=color);
 
-
-  plt.plot(bin_interp,prctiles_interp[4,:],color=c_dark_highlight);
-  plt.axvline(x=25,ls='-',lw=2,color='k');
-  plt.xlabel('y');
-  plt.title('Prior predictive distribution');
-  #+END_SRC
+plt.plot(bin_interp,prctiles_interp[4,:],color=c_dark_highlight);
+plt.axvline(x=25,ls='-',lw=2,color='k');
+plt.xlabel('y');
+plt.title('Prior predictive distribution');
+#+END_SRC
 
 ** Fit to simulated data
-   :PROPERTIES:
-   :CUSTOM_ID: fit-to-simulated-data
-   :END:
+:PROPERTIES:
+:CUSTOM_ID: fit-to-simulated-data
+:END:
 
-   Betancourt performs this for each =y= in trace. For now we just do it for a single one.
+Betancourt performs this for each =y= in trace. For now we just do it for a single one.
 
-   #+BEGIN_SRC python
-   model = pm.Model()
-   with model:
-      lbda = pm.HalfNormal("lbda",sd=6.44787)
+#+BEGIN_SRC python
+model = pm.Model()
+with model:
+   lbda = pm.HalfNormal("lbda",sd=6.44787)
 
-      y = pm.Poisson("y",mu=lbda,shape=(N,),observed=simu_ys[-1,:])
+   y = pm.Poisson("y",mu=lbda,shape=(N,),observed=simu_ys[-1,:])
 
-      trace = pm.sample(draws=R,tune=4*R)
+   trace = pm.sample(draws=R,tune=4*R)
 
-   #+END_SRC
+#+END_SRC
 
 
-  #+BEGIN_SRC python
-  pm.plots.traceplot(trace);
-  #+END_SRC
+#+BEGIN_SRC python
+pm.plots.traceplot(trace);
+#+END_SRC
 
-  #+ATTR_ORG: :width 900
-  [[file:img/prior_post_regimes.png]]
+#+ATTR_ORG: :width 900
+[[file:img/prior_post_regimes.png]]
 
-  #+ATTR_ORG: :width 900
-  [[file:img/eye_chart_regimes.png]]
+#+ATTR_ORG: :width 900
+[[file:img/eye_chart_regimes.png]]
 
-  #+BEGIN_HTML
-  <div>
-  <center>    
-  <img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/eye_chart/prior_post_regimes/prior_post_regimes.png" alt="Drawing" width="70%"/></center>
-  </div>
-  #+END_HTML
+#+BEGIN_HTML
+<div>
+<center>
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/eye_chart/prior_post_regimes/prior_post_regimes.png" alt="Drawing" width="70%"/></center>
+</div>
+#+END_HTML
 
-  #+BEGIN_HTML
-  <div>
-  <center>    
-  <img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/eye_chart/eye_chart_regimes.png" alt="Drawing" width="70%"/></center>
-  </div>
-  #+END_HTML
+#+BEGIN_HTML
+<div>
+<center>
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/eye_chart/eye_chart_regimes.png" alt="Drawing" width="70%"/></center>
+</div>
+#+END_HTML
 
-  Posterior z-score
-  $$z[f \mid \tilde{y}, \theta^{\dagger}] =
-  \frac{ \mathbb{E}_{\mathrm{post}}[f \mid \tilde{y}] - f(\theta^{\dagger}) }
-  { \mathbb{E}_{\mathrm{post}}[f \mid \tilde{y} ] },$$
+Posterior z-score
+$$z[f \mid \tilde{y}, \theta^{\dagger}] =
+\frac{ \mathbb{E}_{\mathrm{post}}[f \mid \tilde{y}] - f(\theta^{\dagger}) }
+{ \mathbb{E}_{\mathrm{post}}[f \mid \tilde{y} ] },$$
 
-  Posterior contraction
-  $$
-  c[f \mid \tilde{y}] = 1 -
-  \frac{ \mathbb{V}_{\mathrm{post}}[f \mid \tilde{y} ] }
-  { \mathbb{V}_{\mathrm{prior}}[f \mid \tilde{y} ] },
-  $$
+Posterior contraction
+$$
+c[f \mid \tilde{y}] = 1 -
+\frac{ \mathbb{V}_{\mathrm{post}}[f \mid \tilde{y} ] }
+{ \mathbb{V}_{\mathrm{prior}}[f \mid \tilde{y} ] },
+$$
 
-  #+BEGIN_SRC python
-  # Compute rank of prior draw with respect to thinned posterior draws
-  sbc_rank = np.sum(simu_lbdas < trace['lbda'][::2])
-  #+END_SRC
+#+BEGIN_SRC python
+# Compute rank of prior draw with respect to thinned posterior draws
+sbc_rank = np.sum(simu_lbdas < trace['lbda'][::2])
+#+END_SRC
 
-  #+BEGIN_SRC python
-  # posterior sensitivities analysis
-  s = pm.stats.summary(trace,varnames=['lbda'])
-  post_mean_lbda = s['mean'].values
-  post_sd_lbda = s['sd'].values
-  prior_sd_lbda = 6.44787
-  z_score = np.abs((post_mean_lbda - simu_lbdas) / post_sd_lbda)
-  shrinkage = 1 - (post_sd_lbda / prior_sd_lbda ) ** 2
-  #+END_SRC
+#+BEGIN_SRC python
+# posterior sensitivities analysis
+s = pm.stats.summary(trace,varnames=['lbda'])
+post_mean_lbda = s['mean'].values
+post_sd_lbda = s['sd'].values
+prior_sd_lbda = 6.44787
+z_score = np.abs((post_mean_lbda - simu_lbdas) / post_sd_lbda)
+shrinkage = 1 - (post_sd_lbda / prior_sd_lbda ) ** 2
+#+END_SRC
 
-  #+BEGIN_SRC python
-  plt.plot(shrinkage[0]*np.ones(len(z_score)),z_score,'o',c="#8F272720");
-  plt.xlim(0,1.01); plt.xlabel('Posterior shrinkage'); plt.ylabel('Posterior z-score');
-  #+END_SRC
+#+BEGIN_SRC python
+plt.plot(shrinkage[0]*np.ones(len(z_score)),z_score,'o',c="#8F272720");
+plt.xlim(0,1.01); plt.xlabel('Posterior shrinkage'); plt.ylabel('Posterior z-score');
+#+END_SRC
 
 ** Fit observations and evaluate
    :PROPERTIES:
@@ -508,21 +800,20 @@ $$
   #+END_SRC
 
 * Section 4.2
-  :PROPERTIES:
-  :CUSTOM_ID: section-42
-  :END:
+:PROPERTIES:
+:CUSTOM_ID: section-42
+:END:
 
-  #+BEGIN_SRC python
-  generative_ensemble2 = pm.Model()
+#+BEGIN_SRC python
+generative_ensemble2 = pm.Model()
+N = 1000
+R = 1000
 
-  N = 1000
-  R = 1000
-
-  with generative_ensemble2:
-      theta = pm.Beta(name="theta", alpha = 1, beta = 1)
-      lambda_ = pm.HalfNormal(name="lambda", sd = 6.44787)
-      y = pm.ZeroInflatedPoisson(name = "y", psi = theta, theta = lambda_, shape = (N,))
-  #+END_SRC
+with generative_ensemble2:
+    theta = pm.Beta(name="theta", alpha = 1, beta = 1)
+    lambda_ = pm.HalfNormal(name="lambda", sd = 6.44787)
+    y = pm.ZeroInflatedPoisson(name = "y", psi = theta, theta = lambda_, shape = (N,))
+#+END_SRC
 
   #+BEGIN_SRC python
   with generative_ensemble2:
@@ -622,72 +913,66 @@ $$
   #+END_SRC
 
 * Section 4.3
-  :PROPERTIES:
-  :CUSTOM_ID: section-43
-  :END:
+:PROPERTIES:
+:CUSTOM_ID: section-43
+:END:
 
 Build a model that generates zero-inflated Poisson counts
 
 ** Build a generative model
-   :PROPERTIES:
-   :CUSTOM_ID: build-a-generative-model
-   :END:
+:PROPERTIES:
+:CUSTOM_ID: build-a-generative-model
+:END:
 
-  #+BEGIN_SRC python
-  lbda  = np.linspace(0, 20, num=int(20/0.001))
-  pdf = stats.invgamma(3.48681,scale=9.21604)
-  plt.plot(lbda, pdf.pdf(lbda), c=c_dark_highlight, lw=2)
-  plt.xlabel("lambda"); plt.ylabel("Prior Density"); plt.yticks([]);
+#+BEGIN_SRC python
+lbda  = np.linspace(0, 20, num=int(20/0.001))
+pdf = stats.invgamma(3.48681,scale=9.21604)
+plt.plot(lbda, pdf.pdf(lbda), c=c_dark_highlight, lw=2)
+plt.xlabel("lambda"); plt.ylabel("Prior Density"); plt.yticks([]);
 
+lbda99 = np.linspace(1, 15, num=int(15/0.001))
 
-  lbda99 = np.linspace(1, 15, num=int(15/0.001))
-
-
-
-  plt.fill_between(lbda99,0.,y2=pdf.pdf(lbda99),color=c_dark)
-  #+END_SRC
+plt.fill_between(lbda99,0.,y2=pdf.pdf(lbda99),color=c_dark)
+#+END_SRC
 
 
-  #+BEGIN_SRC python
-  theta  = np.linspace(0, 1, num=int(1/0.001))
-  pdf = stats.beta(2.8663,2.8663)
-  plt.plot(theta, pdf.pdf(theta), c=c_dark_highlight, lw=2)
-  plt.xlabel("theta"); plt.ylabel("Prior Density"); plt.yticks([]);
+#+BEGIN_SRC python
+theta  = np.linspace(0, 1, num=int(1/0.001))
+pdf = stats.beta(2.8663,2.8663)
+plt.plot(theta, pdf.pdf(theta), c=c_dark_highlight, lw=2)
+plt.xlabel("theta"); plt.ylabel("Prior Density"); plt.yticks([]);
+
+theta99 = np.linspace(0.1, 0.9, num=int(0.8/0.001))
+
+plt.fill_between(theta99,0.,y2=pdf.pdf(theta99),color=c_dark)
+#+END_SRC
 
 
-  theta99 = np.linspace(0.1, 0.9, num=int(0.8/0.001))
-
-
-
-  plt.fill_between(theta99,0.,y2=pdf.pdf(theta99),color=c_dark)
-  #+END_SRC
-
-
-  #+BEGIN_SRC python
+#+BEGIN_SRC python
   #WORKING
 
-  model = pm.Model()
-  N = 1000
-  R = 1000
-  with model:
-      lbda = pm.InverseGamma("lbda",alpha=3.48681,beta=9.21604)
-      theta = pm.Beta("theta",alpha=2.8663,beta=2.8663)
+model = pm.Model()
+N = 1000
+R = 1000
+with model:
+    lbda = pm.InverseGamma("lbda",alpha=3.48681,beta=9.21604)
+    theta = pm.Beta("theta",alpha=2.8663,beta=2.8663)
       
-      y = pm.ZeroInflatedPoisson("y",psi=theta,theta=lbda,shape=N)
+    y = pm.ZeroInflatedPoisson("y",psi=theta,theta=lbda,shape=N)
       
-  #+END_SRC
+#+END_SRC
 
-  #+BEGIN_SRC python
+#+BEGIN_SRC python
   # Note this breaks when N != R
-  with model:
-      trace = pm.sample_prior_predictive(samples=R)
-  #+END_SRC
+with model:
+    trace = pm.sample_prior_predictive(samples=R)
+#+END_SRC
 
-  #+BEGIN_SRC python
-  simu_lbdas = trace['lbda']
-  simu_thetas = trace['theta']
-  simu_ys = trace['y']
-  #+END_SRC
+#+BEGIN_SRC python
+simu_lbdas = trace['lbda']
+simu_thetas = trace['theta']
+simu_ys = trace['y']
+#+END_SRC
 
 ** Plot prior predictive distribution
    :PROPERTIES:
