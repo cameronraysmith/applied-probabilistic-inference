@@ -9,7 +9,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.2'
-      jupytext_version: 1.6.0
+      jupytext_version: 1.7.1
   kernelspec:
     display_name: Python 3
     language: python
@@ -23,7 +23,7 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.8.5
+    version: 3.8.6
   rise:
     scroll: true
     theme: black
@@ -130,7 +130,7 @@ How can we do our best to validate this process works as close as possible to pr
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 <div>
 <center>    
-<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/workflow/all/all.png" alt="Drawing" width="90%"/></center>
+<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/workflow/all/all.png" alt="Drawing" width="70%"/></center>
 </div>
 <!-- #endregion -->
 
@@ -259,8 +259,13 @@ lbda99 = np.linspace(0, 15, num=int(15/0.001))
 
 
 plt.fill_between(lbda99,0.,y2=stats.norm(loc=0,scale=6.44787).pdf(lbda99),color=c_dark);
+
+!mkdir -p ./fig/
 plt.savefig("fig/prior-density-lambda.svg", bbox_inches="tight");
-!inkscape fig/prior-density-lambda.svg --export-filename=fig/prior-density-lambda.pdf;
+```
+
+```python
+!inkscape fig/prior-density-lambda.svg --export-filename=fig/prior-density-lambda.pdf 2>/dev/null
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
