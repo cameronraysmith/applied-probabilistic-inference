@@ -34,18 +34,22 @@ jupyter:
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # An introduction to applied probabilistic inference
+<!-- #endregion -->
 
+<!-- #region {"slideshow": {"slide_type": "fragment"}} -->
 These notes borrow heavily from and are based on
 
-* Betancourt, Michael (2019). Probabilistic Modeling and Statistical Inference. Retrieved from https://github.com/betanalpha/knitr_case_studies/tree/master/modeling_and_inference, commit b474ec1a5a79347f7c9634376c866fe3294d657a.
-* Betancourt, Michael (2020). Towards A Principled Bayesian Workflow (RStan). Retrieved from https://github.com/betanalpha/knitr_case_studies/tree/master/principled_bayesian_workflow, commit 23eb263be4cfb44278d0dfb8ddbd593a4b142506.
+* Betancourt, Michael (2019). Probabilistic Modeling and Statistical Inference. Retrieved from https://github.com/betanalpha/knitr_case_studies/tree/master/modeling_and_inference, commit b474ec.
+* Betancourt, Michael (2020). Towards A Principled Bayesian Workflow (RStan). Retrieved from https://github.com/betanalpha/knitr_case_studies/tree/master/principled_bayesian_workflow, commit 23eb26.
 * [betanalpha/knitr_case_studies](https://github.com/betanalpha/knitr_case_studies)
 * [lstmemery/principled-bayesian-workflow-pymc3](https://github.com/lstmemery/principled-bayesian-workflow-pymc3)
 <!-- #endregion -->
 
+<!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Plotting setup
+<!-- #endregion -->
 
-```python
+```python slideshow={"slide_type": "fragment"}
 %run -i 'plotting.py'
 ```
 
@@ -169,9 +173,9 @@ c_dark_highlight ="#7C0000"
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Section 4.1
-
-Build a model that generates (Poisson) counts that may explain what we have in our data
 <!-- #endregion -->
+
+The goal of this section is to build a first model that generates (Poisson) counts that may explain what we observe in our sample data.
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 ## Example generative models
@@ -234,7 +238,7 @@ Note that these are for illustrative purposes of the manner in which our data ca
 <!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
-## Our data
+## Sample data
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
@@ -244,7 +248,7 @@ df.shape
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
-## Build a generative model
+## Building a generative model
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
@@ -253,11 +257,7 @@ lbda  = np.linspace(0, 20, num=int(20/0.001))
 plt.plot(lbda, stats.norm(loc=0,scale=6.44787).pdf(lbda), c=c_dark_highlight, lw=2)
 plt.xlabel("lambda"); plt.ylabel("Prior Density"); plt.yticks([]);
 
-
 lbda99 = np.linspace(0, 15, num=int(15/0.001))
-
-
-
 plt.fill_between(lbda99,0.,y2=stats.norm(loc=0,scale=6.44787).pdf(lbda99),color=c_dark);
 
 !mkdir -p ./fig/
@@ -269,7 +269,7 @@ plt.savefig("fig/prior-density-lambda.svg", bbox_inches="tight");
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
-In this case the complete Bayesian model is given by
+In this case, the candidate _complete Bayesian model_ under consideration is given by
 
 $$
 \pi( y_{1}, \ldots, y_{N}, \lambda )
@@ -346,9 +346,9 @@ plt.title('Prior predictive distribution');
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 ## Fit to simulated data
+<!-- #endregion -->
 
 Betancourt performs this for each `y` in trace. For now we just do it for a single one.
-<!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
 model = pm.Model()
@@ -580,13 +580,13 @@ with open("fit_data2.pkl", "wb+") as buffer:
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Section 4.3
-
-Build a model that generates zero-inflated Poisson counts
 <!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 ## Build a generative model
 <!-- #endregion -->
+
+Build a model that generates zero-inflated Poisson counts
 
 ```python slideshow={"slide_type": "fragment"}
 lbda  = np.linspace(0, 20, num=int(20/0.001))
@@ -669,9 +669,9 @@ plt.title('Prior predictive distribution');
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 ## Fit to simulated data
-
-In example Betancourt performs this for each `y` in trace. Here we just do it for one.
 <!-- #endregion -->
+
+In the example, Betancourt performs this for each `y` in trace. Here we only compute this for one element of the trace.
 
 ```python slideshow={"slide_type": "fragment"}
 model = pm.Model()
