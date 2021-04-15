@@ -301,7 +301,7 @@ Here we build a candidate model that generates (Poisson) counts that may explain
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"} tags=[]
-df = pd.read_csv('data.csv')
+df = pd.read_csv('https://raw.githubusercontent.com/cameronraysmith/applied-probabilistic-inference/master/data.csv')
 print(df.head(8))
 df.shape
 ```
