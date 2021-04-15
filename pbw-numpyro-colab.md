@@ -55,22 +55,28 @@ The implementation of the modelling and inference translated from [lstmemery's p
 <!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-# Plotting setup
+# Setup
 <!-- #endregion -->
+
+## Install libraries
 
 ```python slideshow={"slide_type": "fragment"} tags=[]
 # %run -i 'plotting.py'
 ```
 
 ```python
-import matplotlib.pyplot as plt
-import matplotlib.font_manager
+!apt-get install -y fonts-lmodern
+!pip install -q arviz numpyro
 ```
 
 ## Add latin modern fonts
 
 ```python
-!apt-get install -y fonts-lmodern
+import matplotlib.pyplot as plt
+import matplotlib.font_manager
+```
+
+```python
 fonts_path_ubuntu = "/usr/share/texmf/fonts/opentype/public/lm/"
 # fonts_path_macos = "~/Library/Fonts/"
 # fonts_path_arch = "/usr/share/fonts/OTF/"
@@ -78,7 +84,7 @@ matplotlib.font_manager.fontManager.addfont(fonts_path_ubuntu + "lmsans10-regula
 matplotlib.font_manager.fontManager.addfont(fonts_path_ubuntu + "lmroman10-regular.otf")
 ```
 
-## Set matplotlib to use Latin Modern fonts
+## Set matplotlib to use latin modern fonts
 
 ```python
 from IPython.display import set_matplotlib_formats
