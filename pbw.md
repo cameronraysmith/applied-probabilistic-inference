@@ -8,8 +8,8 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.2'
-      jupytext_version: 1.7.1
+      format_version: '1.3'
+      jupytext_version: 1.11.1
   kernelspec:
     display_name: Python 3
     language: python
@@ -23,7 +23,7 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.8.6
+    version: 3.9.2
   rise:
     scroll: true
     theme: black
@@ -49,7 +49,7 @@ These notes borrow heavily from and are based on
 # Plotting setup
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 %run -i 'plotting.py'
 ```
 
@@ -142,7 +142,7 @@ How can we do our best to validate this process works as close as possible to pr
 # Load libraries
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 # %pylab inline
 # import matplotlib.pyplot as plt
 import pymc3 as pm
@@ -162,7 +162,7 @@ print(theano.__version__)
 ## define colors
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 c_light ="#DCBCBC"
 c_light_highlight ="#C79999"
 c_mid ="#B97C7C"
@@ -241,7 +241,7 @@ Note that these are for illustrative purposes of the manner in which our data ca
 ## Sample data
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 df = pd.read_csv('data.csv')
 print(df.head())
 df.shape
@@ -251,7 +251,7 @@ df.shape
 ## Building a generative model
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 lbda  = np.linspace(0, 20, num=int(20/0.001))
 
 plt.plot(lbda, stats.norm(loc=0,scale=6.44787).pdf(lbda), c=c_dark_highlight, lw=2)
@@ -264,7 +264,7 @@ plt.fill_between(lbda99,0.,y2=stats.norm(loc=0,scale=6.44787).pdf(lbda99),color=
 plt.savefig("fig/prior-density-lambda.svg", bbox_inches="tight");
 ```
 
-```python
+```python tags=[]
 !inkscape fig/prior-density-lambda.svg --export-filename=fig/prior-density-lambda.pdf 2>/dev/null
 ```
 
