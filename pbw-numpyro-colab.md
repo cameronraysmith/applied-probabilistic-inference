@@ -473,7 +473,7 @@ plt.xlim(0,1.01); plt.xlabel('Posterior shrinkage'); plt.ylabel('Posterior z-sco
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
-df = pd.read_csv('data.csv')
+# df = pd.read_csv('data.csv')
 data_ys = df[df['data']=='y']['value'].values
 ```
 
@@ -757,7 +757,7 @@ plt.xlim(0,1.01); plt.xlabel('Posterior shrinkage'); plt.ylabel('Posterior z-sco
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
-df = pd.read_csv('data.csv')
+# df = pd.read_csv('data.csv')
 data_ys = df[df['data']=='y']['value'].values
 ```
 
