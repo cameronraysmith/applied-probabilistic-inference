@@ -8,8 +8,8 @@ jupyter:
     text_representation:
       extension: .md
       format_name: markdown
-      format_version: '1.2'
-      jupytext_version: 1.7.1
+      format_version: '1.3'
+      jupytext_version: 1.11.1
   kernelspec:
     display_name: Python 3
     language: python
@@ -23,7 +23,7 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.8.5
+    version: 3.9.2
   rise:
     scroll: true
     theme: black
