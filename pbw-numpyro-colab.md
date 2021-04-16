@@ -54,7 +54,7 @@ The following notes borrow heavily from and are *thoroughly* based on Michael Be
 The implementation of the modelling and inference translated from [lstmemery's pymc3 implementation of Betancourt's principled Bayesian workflow](https://github.com/lstmemery/principled-bayesian-workflow-pymc3) to [numpyro](http://num.pyro.ai/en/stable/) is by [Du Phan](https://fehiepsi.github.io/).
 <!-- #endregion -->
 
-<!-- #region {"slideshow": {"slide_type": "slide"}} -->
+<!-- #region {"slideshow": {"slide_type": "slide"}, "heading_collapsed": "true", "tags": []} -->
 # Setup
 <!-- #endregion -->
 
@@ -66,7 +66,7 @@ The implementation of the modelling and inference translated from [lstmemery's p
 
 ```python
 # !apt-get install -y fonts-lmodern
-!pip install -q arviz numpyro
+# !pip install -q arviz numpyro
 ```
 
 ## Add latin modern fonts
@@ -77,9 +77,9 @@ import matplotlib.font_manager
 ```
 
 ```python
-fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
+# fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
 # fonts_path = "~/Library/Fonts/" # macos
-# fonts_path = "/usr/share/fonts/OTF/" # arch
+fonts_path = "/usr/share/fonts/OTF/" # arch
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmsans10-regular.otf")
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmroman10-regular.otf")
 ```
@@ -294,7 +294,7 @@ c_dark_highlight ="#7C0000"
 <!-- 4.1 -->
 <!-- #endregion -->
 
-Here we build a candidate model that generates (Poisson) counts that may explain what we observe in our sample data.
+Below is an analysis of a data set of integer counts from a hypothetical series of experiments in which an ensemble of detectors is employed to count particles emitted from a radioactive specimen. We build a first candidate model that is consistent with the domain knowledge that such counts are integers and emissions are independent justifying experimentation with a Poisson process we hypothesize may account for the distribution of particle counts we observe in our sample data. We proceed in subsequent sections to critique and refine this model.
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 ### Sample data
@@ -637,19 +637,7 @@ plt.title('Posterior predictive distribution');
 ### Update the generative model
 <!-- #endregion -->
 
-<!-- #region -->
-Build a model that generates zero-inflated Poisson counts. For reference, the model from the second attempt is
-```python
-N = 1000
-R = 1000
-
-def model2(y=None):
-    lambda_ = numpyro.sample("lambda", dist.HalfNormal(6.44787))
-    theta = numpyro.sample("theta", dist.Beta(1, 1))
-    return numpyro.sample(
-        "y", dist.ZeroInflatedPoisson(rate=lambda_, gate=1 - theta).expand([N]), obs=y)
-```
-<!-- #endregion -->
+Build a model that generates zero-inflated Poisson counts and update the `HalfNormal` prior, which, in combination with the zero-inflated Poisson distribution, leaves too much probability mass near zero. Here we use an `InverseGamma` prior with hyperparameter settings that leave $\approx 1\%$ of the probability mass below a detector count of $1$ and similarly allows for $\approx 1\%$ of the mass above $15$. $1$ and $15$ are on the arbitrary integral detector count scale implied here by knowledge of the manufacturing specifications of the hypothetical detector devices.
 
 ```python slideshow={"slide_type": "fragment"}
 lbda  = np.linspace(0, 20, num=int(20/0.001))
@@ -673,9 +661,22 @@ theta99 = np.linspace(0.1, 0.9, num=int(0.8/0.001))
 plt.fill_between(theta99,0.,y2=pdf.pdf(theta99),color=c_dark);
 ```
 
-```python slideshow={"slide_type": "subslide"}
-#WORKING
+<!-- #region -->
+ For reference, the model from the second attempt is
+```python
+N = 1000
+R = 1000
 
+def model2(y=None):
+    lbda = numpyro.sample("lbda", dist.HalfNormal(6.44787))
+    theta = numpyro.sample("theta", dist.Beta(1, 1))
+    return numpyro.sample(
+        "y", dist.ZeroInflatedPoisson(rate=lbda, gate=1 - theta).expand([N]), obs=y)
+```
+
+<!-- #endregion -->
+
+```python slideshow={"slide_type": "subslide"}
 N = 1000
 R = 1000
 
@@ -792,22 +793,7 @@ plt.title('Posterior predictive distribution');
 ## Account for upper limit of detection
 <!-- #endregion -->
 
-<!-- #region -->
-The results of our third attempt identified the missing component of our prior was an upper threshold beyond which detectors were unable to register counts. Our model was
-```python
-#WORKING
-
-N = 1000
-R = 1000
-
-def model3(y=None):
-    lbda = numpyro.sample("lbda", dist.InverseGamma(3.48681, 9.21604))
-    theta = numpyro.sample("theta", dist.Beta(2.8663, 2.8663))  
-    return numpyro.sample(
-        "y", dist.ZeroInflatedPoisson(rate=lbda, gate=1 - theta).expand([N]), obs=y)
-```
-Now, we implement a means of truncating the zero-inflated Poisson distribution to reflect this newly identified information.
-<!-- #endregion -->
+The results of our third attempt identified the fact that a feature missing from our prior was an upper threshold beyond which detectors were unable to register counts. Now, we implement a means of truncating the zero-inflated Poisson distribution, see `TruncatedZeroInflatedPoisson` below to reflect this newly recognized domain expertise. In principle, if we had done a better job of thinking through the physical constraints of this experiment, we could have identified this as an appropriate model in step one. In practice, there will almost always be something of this nature that is not accounted for in the initial incorporation of domain expertise into the model structure.
 
 ```python slideshow={"slide_type": "subslide"}
 def rv_truncated_poisson(mu, mx, size=None):
@@ -850,6 +836,20 @@ class TruncatedZeroInflatedPoisson(dist.Distribution):
         log_prob = jnp.log1p(-self.gate) + log_prob
         return jnp.where(value == 0, jnp.log(self.gate + jnp.exp(log_prob)), log_prob)
 ```
+
+<!-- #region -->
+Our previous model (attempt number three) was based on the `ZeroInflatedPoisson` without truncation.
+```python
+N = 1000
+R = 1000
+
+def model3(y=None):
+    lbda = numpyro.sample("lbda", dist.InverseGamma(3.48681, 9.21604))
+    theta = numpyro.sample("theta", dist.Beta(2.8663, 2.8663))  
+    return numpyro.sample(
+        "y", dist.ZeroInflatedPoisson(rate=lbda, gate=1 - theta).expand([N]), obs=y)
+```
+<!-- #endregion -->
 
 ```python slideshow={"slide_type": "subslide"}
 N = 1000
