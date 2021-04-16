@@ -857,10 +857,10 @@ R = 1000
 
 def model4(y=None):
     lbda = numpyro.sample("lbda", dist.InverseGamma(3.48681, 9.21604))
-    psi = numpyro.sample("psi", dist.Beta(2.8663, 2.8663))  
+    theta = numpyro.sample("theta", dist.Beta(2.8663, 2.8663))  
     return numpyro.sample(
         "y",
-        TruncatedZeroInflatedPoisson(rate=lbda, gate=1 - psi, high=14).expand([N]),
+        TruncatedZeroInflatedPoisson(rate=lbda, gate=1 - theta, high=14).expand([N]),
         obs=y)
 ```
 
@@ -870,7 +870,7 @@ trace = Predictive(model4, {}, num_samples=1000)(jax.random.PRNGKey(0))
 
 ```python slideshow={"slide_type": "fragment"}
 simu_lbdas = trace['lbda']
-simu_thetas = trace['psi']
+simu_thetas = trace['theta']
 simu_ys = trace['y']
 ```
 
