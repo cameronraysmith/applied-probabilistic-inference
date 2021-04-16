@@ -469,12 +469,12 @@ plt.title('Posterior predictive distribution');
 ```
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-## Accounting for measurement device failure
+## Account for measurement device failure
 
 <!-- 4.2 -->
 <!-- #endregion -->
 
-### Updating model specification
+### Update the generative model specification
 
 <!-- #region -->
 Recall the specification of our first attempt to model the detector count data with a [simple Poisson process model](poisson-process-for-arbitrary-detector-count-data)
@@ -500,7 +500,7 @@ def model2(y=None):
         "y", dist.ZeroInflatedPoisson(rate=lambda_, gate=1 - theta).expand([N]), obs=y)
 ```
 
-### Simulating the updated model
+### Simulate the updated model
 
 ```python tags=[]
 trace = Predictive(model2, {}, num_samples=R)(jax.random.PRNGKey(0))
@@ -615,11 +615,12 @@ plt.title('Posterior predictive distribution');
 ```
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-# Section 4.3
+## Account for the distinction between functioning and malfunctioning measurement devices
+<!-- 4.3 -->
 <!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
-## Build a generative model
+### Update the generative model
 <!-- #endregion -->
 
 <!-- #region -->
@@ -682,7 +683,7 @@ simu_ys = trace['y']
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
-## Plot prior predictive distribution
+### Plot prior predictive distribution
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
@@ -707,7 +708,7 @@ plt.title('Prior predictive distribution');
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
-## Fit to simulated data
+### Fit to simulated data
 <!-- #endregion -->
 
 In the example, Betancourt performs this for each `y` in trace. Here we only compute this for one element of the trace.
@@ -726,7 +727,7 @@ az.plot_trace(trace);
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
-## Fit observations and evaluate
+### Fit observations and evaluate
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
@@ -774,11 +775,11 @@ plt.title('Posterior predictive distribution');
 ```
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-# Section 4.4
+## Account for upper limit of detection
 <!-- #endregion -->
 
 <!-- #region -->
-In the third attempt, we identified the missing component of our prior was an upper threshold beyond which detectors were unable to register counts. Our model was
+The results of our third attempt identified the missing component of our prior was an upper threshold beyond which detectors were unable to register counts. Our model was
 ```python
 #WORKING
 
