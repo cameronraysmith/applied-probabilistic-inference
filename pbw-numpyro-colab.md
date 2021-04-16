@@ -61,7 +61,7 @@ The implementation of the modelling and inference translated from [lstmemery's p
 ## Install libraries
 
 ```python slideshow={"slide_type": "fragment"} tags=[]
-%run -i 'plotting.py'
+# %run -i 'plotting.py'
 ```
 
 ```python
