@@ -420,54 +420,6 @@ trace = mcmc.get_samples(group_by_chain=True)
 az.plot_trace(trace);
 ```
 
-<div>
-<center>    
-<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/eye_chart/prior_post_regimes/prior_post_regimes.png" alt="Drawing" width="70%"/></center>
-</div>
-
-
-<div>
-<center>    
-<img src="https://github.com/betanalpha/knitr_case_studies/raw/master/principled_bayesian_workflow/figures/eye_chart/eye_chart_regimes.png" alt="Drawing" width="70%"/></center>
-</div>
-
-
-Posterior z-score
-
-$$
-z[f \mid \tilde{y}, \theta^{\dagger}] =
-\frac{ \mathbb{E}_{\mathrm{post}}[f \mid \tilde{y}] - f(\theta^{\dagger}) }
-{ \mathbb{E}_{\mathrm{post}}[f \mid \tilde{y} ] },
-$$
-
-
-Posterior contraction
-$$
-c[f \mid \tilde{y}] = 1 -
-\frac{ \mathbb{V}_{\mathrm{post}}[f \mid \tilde{y} ] }
-{ \mathbb{V}_{\mathrm{prior}}[f \mid \tilde{y} ] },
-$$
-
-```python slideshow={"slide_type": "fragment"}
-# Compute rank of prior draw with respect to thinned posterior draws
-sbc_rank = np.sum(simu_lbdas < trace['lbda'][::2])
-```
-
-```python slideshow={"slide_type": "subslide"}
-# posterior sensitivities analysis
-s = numpyro.diagnostics.summary(trace)["lbda"]
-post_mean_lbda = s["mean"]
-post_sd_lbda = s["std"]
-prior_sd_lbda = 6.44787
-z_score = np.abs((post_mean_lbda - simu_lbdas) / post_sd_lbda)
-shrinkage = 1 - (post_sd_lbda / prior_sd_lbda ) ** 2
-```
-
-```python slideshow={"slide_type": "fragment"}
-plt.plot(shrinkage*np.ones(len(z_score)),z_score,'o',c="#8F272720");
-plt.xlim(0,1.01); plt.xlabel('Posterior shrinkage'); plt.ylabel('Posterior z-score');
-```
-
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 ### Fit observations and evaluate
 <!-- #endregion -->
@@ -730,26 +682,6 @@ trace = mcmc.get_samples(group_by_chain=True)
 
 ```python
 az.plot_trace(trace);
-```
-
-```python slideshow={"slide_type": "fragment"}
-# Compute rank of prior draw with respect to thinned posterior draws
-sbc_rank = np.sum(simu_lbdas < trace['lbda'][::2])
-```
-
-```python slideshow={"slide_type": "subslide"}
-# posterior sensitivities analysis
-s = numpyro.diagnostics.summary(trace)['lbda']
-post_mean_lbda = s['mean']
-post_sd_lbda = s['std']
-prior_sd_lbda = 6.44787
-z_score = np.abs((post_mean_lbda - simu_lbdas) / post_sd_lbda)
-shrinkage = 1 - (post_sd_lbda / prior_sd_lbda ) ** 2
-```
-
-```python slideshow={"slide_type": "fragment"}
-plt.plot(shrinkage*np.ones(len(z_score)),z_score,'o',c="#8F272720");
-plt.xlim(0,1.01); plt.xlabel('Posterior shrinkage'); plt.ylabel('Posterior z-score');
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
