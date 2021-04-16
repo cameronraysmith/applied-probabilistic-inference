@@ -585,6 +585,35 @@ with open("fit_data2.pkl", "wb+") as buffer:
     pickle.dump({"model": model2, "trace": trace_fit}, buffer)
 ```
 
+```python tags=[]
+ppc = Predictive(model2, mcmc.get_samples())(jax.random.PRNGKey(3))
+```
+
+```python slideshow={"slide_type": "fragment"} tags=[]
+x_max = 30
+bins = np.arange(0,x_max)
+bin_interp = np.linspace(0,x_max-1,num=(x_max-1)*10)
+hists = np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 1, ppc['y'])
+
+prctiles = np.percentile(hists,np.linspace(10,90,num=9),axis=0)
+prctiles_interp = np.repeat(prctiles, 10,axis=1)
+
+data_hist = np.histogram(data_ys,bins=bins)[0]
+data_hist_interp = np.repeat(data_hist, 10)
+```
+
+```python slideshow={"slide_type": "subslide"} tags=[]
+for i,color in enumerate([c_light,c_light_highlight,c_mid,c_mid_highlight]):
+    plt.fill_between(bin_interp,prctiles_interp[i,:],prctiles_interp[-1-i,:],alpha=1.0,color=color);
+
+
+plt.plot(bin_interp,prctiles_interp[4,:],color=c_dark_highlight);
+plt.plot(bin_interp,data_hist_interp,color='black');
+plt.axvline(x=25,ls='-',lw=2,color='k');
+plt.xlabel('y');
+plt.title('Posterior predictive distribution');
+```
+
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Section 4.3
 <!-- #endregion -->
