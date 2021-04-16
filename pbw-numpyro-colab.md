@@ -61,11 +61,11 @@ The implementation of the modelling and inference translated from [lstmemery's p
 ## Install libraries
 
 ```python slideshow={"slide_type": "fragment"} tags=[]
-# %run -i 'plotting.py'
+%run -i 'plotting.py'
 ```
 
 ```python
-!apt-get install -y fonts-lmodern
+# !apt-get install -y fonts-lmodern
 !pip install -q arviz numpyro
 ```
 
@@ -77,11 +77,11 @@ import matplotlib.font_manager
 ```
 
 ```python
-fonts_path_ubuntu = "/usr/share/texmf/fonts/opentype/public/lm/"
-# fonts_path_macos = "~/Library/Fonts/"
-# fonts_path_arch = "/usr/share/fonts/OTF/"
-matplotlib.font_manager.fontManager.addfont(fonts_path_ubuntu + "lmsans10-regular.otf")
-matplotlib.font_manager.fontManager.addfont(fonts_path_ubuntu + "lmroman10-regular.otf")
+fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
+# fonts_path = "~/Library/Fonts/" # macos
+# fonts_path = "/usr/share/fonts/OTF/" # arch
+matplotlib.font_manager.fontManager.addfont(fonts_path + "lmsans10-regular.otf")
+matplotlib.font_manager.fontManager.addfont(fonts_path + "lmroman10-regular.otf")
 ```
 
 ## Set matplotlib to use latin modern fonts
@@ -125,7 +125,7 @@ plt.rcParams.update({'font.size': 16,
 * observation space: $Y$
 * arbitrary points in the observation space: $y$
 * explicitly realized observations from the observational process $\tilde{y}$
-* data generating process: a probability distribution over the observation space
+* data generating process: a probability distribution over the observation space $\pi \colon Y \rightarrow [0,1]$
 * space of all data generating processes: $\mathcal{P}$
 * observational model vs model configuration space: the subspace, $\mathcal{S} \subset \mathcal{P}$, of data generating processes considered in any particular application
 * parametrization: a map from a model configuration space $\mathcal{S}$ to a parameter space $\mathcal{\Theta}$ assigning to each model configuration $s \in \mathcal{S}$ a parameter $\theta \in \mathcal{\Theta}$
@@ -562,7 +562,7 @@ simu_ys[simu_ys > 25].size / simu_ys.size
 ### Fit Simulated Observations and Evaluate 
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 N = 1000
 R = 1000
 
@@ -571,18 +571,32 @@ mcmc.run(jax.random.PRNGKey(1), y=simu_ys[-1, :])
 trace_fit = mcmc.get_samples(group_by_chain=True)
 ```
 
-```python
+```python tags=[]
 az.plot_trace(trace_fit);
 ```
 
-```python
+```python tags=[]
 numpyro.diagnostics.print_summary(trace_fit)
 ```
 
-```python slideshow={"slide_type": "subslide"}
+```python slideshow={"slide_type": "subslide"} tags=[]
 import pickle
 with open("fit_data2.pkl", "wb+") as buffer:
     pickle.dump({"model": model2, "trace": trace_fit}, buffer)
+```
+
+<!-- #region {"tags": []} -->
+### Fit observations and evaluate
+<!-- #endregion -->
+
+```python tags=[]
+mcmc = MCMC(NUTS(model2), num_warmup=4 * R, num_samples=R, num_chains=4)
+mcmc.run(jax.random.PRNGKey(2), y=data_ys)
+trace = mcmc.get_samples(group_by_chain=True)
+```
+
+```python
+az.plot_posterior(trace, kind="hist");
 ```
 
 ```python tags=[]
