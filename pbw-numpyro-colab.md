@@ -593,7 +593,19 @@ with open("fit_data2.pkl", "wb+") as buffer:
 ## Build a generative model
 <!-- #endregion -->
 
-Build a model that generates zero-inflated Poisson counts
+<!-- #region -->
+Build a model that generates zero-inflated Poisson counts. For reference, the model from the second attempt is
+```python
+N = 1000
+R = 1000
+
+def model2(y=None):
+    lambda_ = numpyro.sample("lambda", dist.HalfNormal(6.44787))
+    theta = numpyro.sample("theta", dist.Beta(1, 1))
+    return numpyro.sample(
+        "y", dist.ZeroInflatedPoisson(rate=lambda_, gate=1 - theta).expand([N]), obs=y)
+```
+<!-- #endregion -->
 
 ```python slideshow={"slide_type": "fragment"}
 lbda  = np.linspace(0, 20, num=int(20/0.001))
@@ -734,6 +746,23 @@ plt.title('Posterior predictive distribution');
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
 # Section 4.4
+<!-- #endregion -->
+
+<!-- #region -->
+In the third attempt, we identified the missing component of our prior was an upper threshold beyond which detectors were unable to register counts. Our model was
+```python
+#WORKING
+
+N = 1000
+R = 1000
+
+def model3(y=None):
+    lbda = numpyro.sample("lbda", dist.InverseGamma(3.48681, 9.21604))
+    theta = numpyro.sample("theta", dist.Beta(2.8663, 2.8663))  
+    return numpyro.sample(
+        "y", dist.ZeroInflatedPoisson(rate=lbda, gate=1 - theta).expand([N]), obs=y)
+```
+Now, we implement a means of truncating the zero-inflated Poisson distribution to reflect this newly identified information.
 <!-- #endregion -->
 
 ```python slideshow={"slide_type": "subslide"}
