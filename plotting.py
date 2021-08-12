@@ -9,9 +9,9 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.11.1
+#       jupytext_version: 1.11.4
 #   kernelspec:
-#     display_name: Python 3
+#     display_name: Python 3 (ipykernel)
 #     language: python
 #     name: python3
 #   language_info:
@@ -23,7 +23,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.9.2
+#     version: 3.9.6
 #   rise:
 #     scroll: true
 #     theme: black
@@ -65,12 +65,12 @@ HTML("<div style='column-count: 2;'>{}</div>".format(code))
 # https://www.archlinux.org/packages/community/any/otf-latin-modern/
 # # !sudo pacman -Syu --needed --noconfirm otf-latin-modern inkscape
 # # !brew cask install font-latin-modern
-# !apt-get install -y fonts-lmodern
-fonts_path_ubuntu = "/usr/share/texmf/fonts/opentype/public/lm/"
+# # !apt-get install -y fonts-lmodern
+# fonts_path_ubuntu = "/usr/share/texmf/fonts/opentype/public/lm/"
 # fonts_path_macos = "~/Library/Fonts/"
-# fonts_path_arch = "/usr/share/fonts/OTF/"
-matplotlib.font_manager.fontManager.addfont(fonts_path_ubuntu + "lmsans10-regular.otf")
-matplotlib.font_manager.fontManager.addfont(fonts_path_ubuntu + "lmroman10-regular.otf")
+fonts_path_arch = "/usr/share/fonts/OTF/"
+matplotlib.font_manager.fontManager.addfont(fonts_path_arch + "lmsans10-regular.otf")
+matplotlib.font_manager.fontManager.addfont(fonts_path_arch + "lmroman10-regular.otf")
 
 # %% [markdown]
 # ## Set matplotlib to use Latin Modern fonts
