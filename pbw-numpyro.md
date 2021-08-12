@@ -23,7 +23,7 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.9.2
+    version: 3.9.4
   rise:
     scroll: true
     theme: black
@@ -331,21 +331,21 @@ def model(y=None):
 
 #### Simulation
 
-```python
+```python tags=[]
 trace = Predictive(model, {}, num_samples=R)(jax.random.PRNGKey(0))
 ```
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 simu_lbdas = trace['lbda']
 simu_ys = trace['y']
 ```
 
-```python
+```python tags=[]
 print(simu_lbdas[0:9])
 print(simu_lbdas.shape)
 ```
 
-```python
+```python tags=[]
 print(simu_ys[0:9])
 print(simu_ys.shape)
 ```
@@ -354,7 +354,7 @@ print(simu_ys.shape)
 ### Plot prior predictive distribution
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 x_max = 30
 bins = np.arange(0,x_max)
 bin_interp = np.linspace(0,x_max-1,num=(x_max-1)*10)
@@ -381,13 +381,13 @@ plt.title('Prior predictive distribution');
 
 [Betancourt, 2020](https://betanalpha.github.io/assets/case_studies/principled_bayesian_workflow.html#Step_Nine:_Fit_Simulated_Ensemble60) performs this for each `y` in trace.
 
-```python
+```python tags=[]
 mcmc = MCMC(NUTS(model), num_warmup=4 * R, num_samples=R, num_chains=2)
 mcmc.run(jax.random.PRNGKey(1), y=simu_ys[-1, :])
 trace = mcmc.get_samples(group_by_chain=True)
 ```
 
-```python
+```python tags=[]
 az.plot_trace(trace);
 ```
 
@@ -419,22 +419,27 @@ c[f \mid \tilde{y}] = 1 -
 { \mathbb{V}_{\mathrm{prior}}[f \mid \tilde{y} ] },
 $$
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 # Compute rank of prior draw with respect to thinned posterior draws
 sbc_rank = np.sum(simu_lbdas < trace['lbda'][::2])
 ```
 
-```python slideshow={"slide_type": "subslide"}
+```python slideshow={"slide_type": "subslide"} tags=[]
 # posterior sensitivities analysis
 s = numpyro.diagnostics.summary(trace)["lbda"]
 post_mean_lbda = s["mean"]
 post_sd_lbda = s["std"]
 prior_sd_lbda = 6.44787
-z_score = np.abs((post_mean_lbda - simu_lbdas) / post_sd_lbda)
+# z_score = np.abs((post_mean_lbda - simu_lbdas) / post_sd_lbda)
+z_score = (post_mean_lbda - simu_lbdas) / post_sd_lbda
 shrinkage = 1 - (post_sd_lbda / prior_sd_lbda ) ** 2
 ```
 
-```python slideshow={"slide_type": "fragment"}
+```python
+post_mean_lbda
+```
+
+```python slideshow={"slide_type": "fragment"} tags=[]
 plt.plot(shrinkage*np.ones(len(z_score)),z_score,'o',c="#8F272720");
 plt.xlim(0,1.01); plt.xlabel('Posterior shrinkage'); plt.ylabel('Posterior z-score');
 ```
@@ -525,11 +530,11 @@ def model2(y=None):
 trace = Predictive(model2, {}, num_samples=R)(jax.random.PRNGKey(0))
 ```
 
-```python slideshow={"slide_type": "subslide"}
+```python slideshow={"slide_type": "subslide"} tags=[]
 trace["theta"][:10]
 ```
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 trace["lambda"][:10]
 ```
 
@@ -540,7 +545,7 @@ simu_ys
 
 What is the fraction of zero values in this simulated data?
 
-```python
+```python tags=[]
 simu_ys[simu_ys < 0.001].size / simu_ys.size
 ```
 
@@ -549,7 +554,7 @@ print(simu_ys.shape)
 np.count_nonzero(simu_ys, axis=1).mean()
 ```
 
-```python slideshow={"slide_type": "subslide"}
+```python slideshow={"slide_type": "subslide"} tags=[]
 x_max = 30
 bins = np.arange(0 ,x_max)
 bin_interp = np.linspace(0,x_max-1,num=(x_max-1)*10)
@@ -573,7 +578,7 @@ plt.xlabel('y');
 plt.title('Prior predictive distribution');
 ```
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 simu_ys[simu_ys > 25].size / simu_ys.size
 ```
 
@@ -581,7 +586,7 @@ simu_ys[simu_ys > 25].size / simu_ys.size
 ### Fit Simulated Observations and Evaluate 
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 N = 1000
 R = 1000
 
@@ -590,18 +595,47 @@ mcmc.run(jax.random.PRNGKey(1), y=simu_ys[-1, :])
 trace_fit = mcmc.get_samples(group_by_chain=True)
 ```
 
-```python
+```python tags=[]
 az.plot_trace(trace_fit);
 ```
 
-```python
+```python tags=[]
 numpyro.diagnostics.print_summary(trace_fit)
 ```
 
-```python slideshow={"slide_type": "subslide"}
+```python slideshow={"slide_type": "subslide"} tags=[]
 import pickle
 with open("fit_data2.pkl", "wb+") as buffer:
     pickle.dump({"model": model2, "trace": trace_fit}, buffer)
+```
+
+```python tags=[]
+ppc = Predictive(model2, mcmc.get_samples())(jax.random.PRNGKey(3))
+```
+
+```python slideshow={"slide_type": "fragment"} tags=[]
+x_max = 30
+bins = np.arange(0,x_max)
+bin_interp = np.linspace(0,x_max-1,num=(x_max-1)*10)
+hists = np.apply_along_axis(lambda a: np.histogram(a, bins=bins)[0], 1, ppc['y'])
+
+prctiles = np.percentile(hists,np.linspace(10,90,num=9),axis=0)
+prctiles_interp = np.repeat(prctiles, 10,axis=1)
+
+data_hist = np.histogram(data_ys,bins=bins)[0]
+data_hist_interp = np.repeat(data_hist, 10)
+```
+
+```python slideshow={"slide_type": "subslide"} tags=[]
+for i,color in enumerate([c_light,c_light_highlight,c_mid,c_mid_highlight]):
+    plt.fill_between(bin_interp,prctiles_interp[i,:],prctiles_interp[-1-i,:],alpha=1.0,color=color);
+
+
+plt.plot(bin_interp,prctiles_interp[4,:],color=c_dark_highlight);
+plt.plot(bin_interp,data_hist_interp,color='black');
+plt.axvline(x=25,ls='-',lw=2,color='k');
+plt.xlabel('y');
+plt.title('Posterior predictive distribution');
 ```
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
@@ -769,6 +803,21 @@ plt.plot(bin_interp,data_hist_interp,color='black');
 plt.axvline(x=25,ls='-',lw=2,color='k');
 plt.xlabel('y');
 plt.title('Posterior predictive distribution');
+```
+
+```python slideshow={"slide_type": "subslide"} tags=[]
+# posterior sensitivities analysis
+s = numpyro.diagnostics.summary(trace)['lbda']
+post_mean_lbda = s['mean']
+post_sd_lbda = s['std']
+prior_sd_lbda = 6.44787
+z_score = np.abs((post_mean_lbda - simu_lbdas) / post_sd_lbda)
+shrinkage = 1 - (post_sd_lbda / prior_sd_lbda ) ** 2
+```
+
+```python slideshow={"slide_type": "fragment"} tags=[]
+plt.plot(shrinkage*np.ones(len(z_score)),z_score,'o',c="#8F272720");
+plt.xlim(0,1.01); plt.xlabel('Posterior shrinkage'); plt.ylabel('Posterior z-score');
 ```
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
