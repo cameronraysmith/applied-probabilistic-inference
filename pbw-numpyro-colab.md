@@ -9,7 +9,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.1
+      jupytext_version: 1.11.2
   kernelspec:
     display_name: Python 3
     language: python
@@ -23,7 +23,8 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.9.2
+    version: 3.9.5
+  name: Betancourt's Probabilistic Modelling Workflow in numpyro
   rise:
     scroll: true
     theme: black
@@ -34,11 +35,11 @@ jupyter:
 ---
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-<center><font size="+3">Introductory review of applied probabilistic inference</font></center>
+<!-- <center><font size="+4">Introductory review of applied probabilistic inference</font></center> -->
 <!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "slide"}} -->
-# References
+# Introductory review of applied probabilistic inference
 <!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "fragment"}} -->
@@ -203,11 +204,13 @@ From a very simple perspective, generative modeling refers to the situation in w
 <!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "fragment"}} -->
+\begin{equation*}
 \begin{split}
 p(\mathbf{y}|\mu,\tau) &= \prod^{9}_{n=0} \mathcal{N}(y_n|\mu,\tau) \\
 p(\mu) &= \mathcal{N}(\mu|0,10^{-6}) \\
 p(\tau) &= \mathcal{G}(\tau|10^{-6},10^{-6})
 \end{split}
+\end{equation*}
 <!-- #endregion -->
 
 <!-- #region {"slideshow": {"slide_type": "fragment"}} -->
