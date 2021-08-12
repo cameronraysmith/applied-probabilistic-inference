@@ -9,9 +9,9 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.2
+      jupytext_version: 1.11.4
   kernelspec:
-    display_name: Python 3
+    display_name: Python 3 (ipykernel)
     language: python
     name: python3
   language_info:
@@ -23,7 +23,7 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.9.5
+    version: 3.9.6
   name: Betancourt's Probabilistic Modelling Workflow in numpyro
   rise:
     scroll: true
@@ -75,6 +75,7 @@ The implementation of the modelling and inference translated from [lstmemery's p
 ```python
 import matplotlib.pyplot as plt
 import matplotlib.font_manager
+import matplotlib_inline
 ```
 
 ```python
@@ -90,7 +91,8 @@ matplotlib.font_manager.fontManager.addfont(fonts_path + "lmroman10-regular.otf"
 ```python
 from IPython.display import set_matplotlib_formats
 #%matplotlib inline
-set_matplotlib_formats('svg') # use SVG backend to maintain vectorization
+# set_matplotlib_formats('svg') # use SVG backend to maintain vectorization
+matplotlib_inline.backend_inline.set_matplotlib_formats('svg')
 plt.style.use('default') #reset default parameters
 # https://stackoverflow.com/a/3900167/446907
 plt.rcParams.update({'font.size': 16,
