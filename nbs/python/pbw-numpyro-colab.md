@@ -9,7 +9,7 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.11.4
+      jupytext_version: 1.13.8
   kernelspec:
     display_name: Python 3 (ipykernel)
     language: python
@@ -23,7 +23,7 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.9.6
+    version: 3.10.4
   name: Betancourt's Probabilistic Modelling Workflow in numpyro
   rise:
     scroll: true
@@ -34,11 +34,11 @@ jupyter:
   toc-showtags: false
 ---
 
-<!-- #region {"slideshow": {"slide_type": "slide"}} -->
+<!-- #region {"slideshow": {"slide_type": "slide"}, "tags": []} -->
 <!-- <center><font size="+4">Introductory review of applied probabilistic inference</font></center> -->
 <!-- #endregion -->
 
-<!-- #region {"slideshow": {"slide_type": "slide"}} -->
+<!-- #region {"slideshow": {"slide_type": "slide"}, "tags": []} -->
 # Introductory review of applied probabilistic inference
 <!-- #endregion -->
 
@@ -72,13 +72,13 @@ The implementation of the modelling and inference translated from [lstmemery's p
 
 ## Add latin modern fonts
 
-```python
+```python tags=[]
 import matplotlib.pyplot as plt
 import matplotlib.font_manager
 import matplotlib_inline
 ```
 
-```python
+```python tags=[]
 # fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
 # fonts_path = "~/Library/Fonts/" # macos
 fonts_path = "/usr/share/fonts/OTF/" # arch
@@ -88,11 +88,15 @@ matplotlib.font_manager.fontManager.addfont(fonts_path + "lmroman10-regular.otf"
 
 ## Set matplotlib to use latin modern fonts
 
-```python
+```python tags=[]
 from IPython.display import set_matplotlib_formats
 #%matplotlib inline
+
+# https://stackoverflow.com/a/36622238/446907
 # set_matplotlib_formats('svg') # use SVG backend to maintain vectorization
-matplotlib_inline.backend_inline.set_matplotlib_formats('svg')
+# matplotlib_inline.backend_inline.set_matplotlib_formats('svg')
+%config InlineBackend.figure_formats = ['svg']
+
 plt.style.use('default') #reset default parameters
 # https://stackoverflow.com/a/3900167/446907
 plt.rcParams.update({'font.size': 16,
@@ -257,7 +261,7 @@ Note that these are for illustrative purposes of the manner in which our data ca
 
 ### Load libraries
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 # %pylab inline
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -285,7 +289,7 @@ numpyro.set_host_device_count(4)
 ### define colors
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 c_light ="#DCBCBC"
 c_light_highlight ="#C79999"
 c_mid ="#B97C7C"
@@ -330,7 +334,7 @@ plt.fill_between(lbda99,0.,y2=stats.norm(loc=0,scale=6.44787).pdf(lbda99),color=
 plt.savefig("fig/prior-density-lambda.svg", bbox_inches="tight");
 ```
 
-```python
+```python tags=[]
 !inkscape fig/prior-density-lambda.svg --export-filename=fig/prior-density-lambda.pdf 2>/dev/null
 ```
 
@@ -354,7 +358,7 @@ $$
 </div>
 <!-- #endregion -->
 
-```python
+```python tags=[]
 N = 1000
 R = 500
 
@@ -365,30 +369,38 @@ def model(y=None):
 
 #### Simulation
 
-```python
+```python tags=[]
 trace = Predictive(model, {}, num_samples=R)(jax.random.PRNGKey(0))
 ```
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 simu_lbdas = trace['lbda']
 simu_ys = trace['y']
 ```
 
-```python
+```python tags=[]
 print(simu_lbdas[0:9])
 print(simu_lbdas.shape)
 ```
 
-```python
+```python tags=[]
 print(simu_ys[0:9])
 print(simu_ys.shape)
+```
+
+```python tags=[]
+numpyro.render_model(model
+                     , model_args=(simu_ys,)
+                     , render_params=True
+                     , render_distributions=True
+                     , filename="./fig/model1.pdf")
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
 ### Plot prior predictive distribution
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 x_max = 30
 bins = np.arange(0,x_max)
 bin_interp = np.linspace(0,x_max-1,num=(x_max-1)*10)
@@ -415,13 +427,13 @@ plt.title('Prior predictive distribution');
 
 [Betancourt, 2020](https://betanalpha.github.io/assets/case_studies/principled_bayesian_workflow.html#Step_Nine:_Fit_Simulated_Ensemble60) performs this for each `y` in trace.
 
-```python
+```python tags=[]
 mcmc = MCMC(NUTS(model), num_warmup=4 * R, num_samples=R, num_chains=2)
 mcmc.run(jax.random.PRNGKey(1), y=simu_ys[-1, :])
 trace = mcmc.get_samples(group_by_chain=True)
 ```
 
-```python
+```python tags=[]
 az.plot_trace(trace);
 ```
 
@@ -429,22 +441,22 @@ az.plot_trace(trace);
 ### Fit observations and evaluate
 <!-- #endregion -->
 
-```python slideshow={"slide_type": "fragment"}
+```python slideshow={"slide_type": "fragment"} tags=[]
 # df = pd.read_csv('data.csv')
 data_ys = df[df['data']=='y']['value'].values
 ```
 
-```python
+```python tags=[]
 mcmc = MCMC(NUTS(model), num_warmup=4 * R, num_samples=R, num_chains=4)
 mcmc.run(jax.random.PRNGKey(2), y=data_ys)
 trace = mcmc.get_samples(group_by_chain=True)
 ```
 
-```python
+```python tags=[]
 az.plot_posterior(trace, kind="hist");
 ```
 
-```python
+```python tags=[]
 ppc = Predictive(model, mcmc.get_samples())(jax.random.PRNGKey(3))
 ```
 
@@ -533,6 +545,14 @@ simu_ys[simu_ys < 0.001].size / simu_ys.size
 ```python slideshow={"slide_type": "fragment"} tags=[]
 print(simu_ys.shape)
 np.count_nonzero(simu_ys, axis=1).mean()
+```
+
+```python tags=[]
+numpyro.render_model(model2
+                     , model_args=(simu_ys,)
+                     , render_params=True
+                     , render_distributions=True
+                     , filename="./fig/model2.pdf")
 ```
 
 ```python slideshow={"slide_type": "subslide"}
@@ -700,6 +720,14 @@ trace = Predictive(model3, {}, num_samples=R)(jax.random.PRNGKey(0))
 simu_lbdas = trace['lbda']
 simu_thetas = trace['theta']
 simu_ys = trace['y']
+```
+
+```python tags=[]
+numpyro.render_model(model3
+                     , model_args=(simu_ys,)
+                     , render_params=True
+                     , render_distributions=True
+                     , filename="./fig/model3.pdf")
 ```
 
 <!-- #region {"slideshow": {"slide_type": "subslide"}} -->
@@ -877,6 +905,14 @@ trace = Predictive(model4, {}, num_samples=1000)(jax.random.PRNGKey(0))
 simu_lbdas = trace['lbda']
 simu_thetas = trace['theta']
 simu_ys = trace['y']
+```
+
+```python tags=[]
+numpyro.render_model(model4
+                     , model_args=(simu_ys,)
+                     , render_params=True
+                     , render_distributions=True
+                     , filename="./fig/model4.pdf")
 ```
 
 ```python slideshow={"slide_type": "subslide"}
