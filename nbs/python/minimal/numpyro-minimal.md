@@ -141,11 +141,12 @@ observations = np.random.randn(N_obs)
 
 ### Define model
 
-```python
+```python tags=[]
 def model(obs=None):
-    mu = numpyro.sample("mu", dist.Normal(1, 2))
+    mu = numpyro.sample("mu", dist.Normal(0, 1))
     sigma = numpyro.sample("sigma", dist.HalfNormal(1))
-    numpyro.sample("obs", dist.Normal(mu, sigma), obs=obs)
+    with numpyro.plate("N_obs", N_obs):
+        numpyro.sample("obs", dist.Normal(mu, sigma), obs=obs)
 ```
 
 ```python tags=[]
@@ -188,29 +189,21 @@ posterior_samples = mcmc.get_samples(group_by_chain=False)
 ```python tags=[]
 rng_key, rng_key_ = jax.random.split(rng_key)
 posterior_predictive = Predictive(model, posterior_samples)
-posterior_predictions = jax.lax.map(posterior_predictive,jax.random.split(rng_key_, N_obs))
+posterior_predictions = posterior_predictive(rng_key_)
+```
+
+```python
+[v.shape for k, v in posterior_predictions.items()]
 ```
 
 ```python tags=[]
 rng_key, rng_key_ = jax.random.split(rng_key)
 prior_predictive = Predictive(model, num_samples=500)
-prior_predictions = jax.lax.map(prior_predictive,jax.random.split(rng_key_, N_obs))
+prior_predictions = prior_predictive(rng_key_)
 ```
 
 ```python tags=[]
-# posterior_predictions["obs"] = jax.numpy.transpose(posterior_predictions["obs"])
-posterior_predictions = {k: jax.numpy.transpose(v) for k,v in posterior_predictions.items()}
-# prior_predictions["obs"] = jax.numpy.transpose(prior_predictions["obs"])
-prior_predictions = {k: jax.numpy.transpose(v) for k,v in prior_predictions.items()}
-```
-
-```python tags=[]
-posterior_predictions["obs"].shape
-```
-
-```python tags=[]
-print(prior_predictions["obs"].shape)
-[v.shape for k,v in prior_predictions.items()]
+[v.shape for k, v in prior_predictions.items()]
 ```
 
 <!-- #region {"tags": []} -->
@@ -219,12 +212,6 @@ print(prior_predictions["obs"].shape)
 
 ```python tags=[]
 type(mcmc)
-```
-
-```python tags=[]
-# print_attributes(mcmc)
-# print_attributes(mcmc.last_state)
-# print_attributes(mcmc.last_state.adapt_state)
 ```
 
 ```python tags=[]
@@ -260,7 +247,7 @@ ax_pr_pred_cum = az.plot_ppc(
     num_pp_samples=100,
     random_seed=7,
 )
-ax_pr_pred_cum.set_xlim([-7,5.5])
+ax_pr_pred_cum.set_xlim([-7, 5.5])
 az.plot_ppc(
     data,
     group="posterior",
@@ -279,7 +266,7 @@ ax_pr_pred = az.plot_ppc(
     num_pp_samples=100,
     random_seed=7,
 )
-ax_pr_pred.set_xlim([-5,5])
+ax_pr_pred.set_xlim([-5, 5])
 az.plot_ppc(
     data,
     group="posterior",

@@ -37,7 +37,7 @@ jupyter:
       version_minor: 0
 ---
 
-# Minimal example for PyMC3
+# Minimal example in pyro
 
 
 ## Setup
@@ -46,15 +46,37 @@ jupyter:
 ### Import libraries
 
 ```python
-import arviz as az
-import numpy as np
-import pymc3 as pm
-
-az.style.use("arviz-darkgrid")
+# may need development version of pyro
+# when running on python 3.10
+# see: https://github.com/pyro-ppl/pyro/pull/3101
+# !sudo pip install git+https://github.com/pyro-ppl/pyro.git
 ```
 
-```python
-print(pm.__version__)
+```python tags=[]
+from inspect import getmembers
+from pprint import pprint
+from types import FunctionType
+
+import arviz as az
+import numpy as np
+import pyro
+import pyro.distributions as dist
+import torch
+from pyro.infer import MCMC, NUTS, Predictive
+import platform
+
+# az.style.use("arviz-darkgrid")
+```
+
+```python tags=[]
+# pyro.set_platform("cpu")
+# pyro.set_host_device_count(4)
+```
+
+```python tags=[]
+print(platform.python_version())
+print(pyro.__version__)
+print(torch.__version__)
 print(az.__version__)
 ```
 
@@ -93,6 +115,24 @@ plt.rcParams.update(
 )
 ```
 
+### Utility functions
+
+```python tags=[]
+def attributes(obj):
+    disallowed_names = {
+        name for name, value in getmembers(type(obj)) if isinstance(value, FunctionType)
+    }
+    return {
+        name: getattr(obj, name)
+        for name in dir(obj)
+        if name[0] != "_" and name not in disallowed_names and hasattr(obj, name)
+    }
+
+
+def print_attributes(obj):
+    pprint(attributes(obj))
+```
+
 ## Execute
 
 
@@ -103,49 +143,78 @@ N_obs = 100
 ```
 
 ```python tags=[]
-observations = np.random.randn(N_obs)
+# observations = dist.Normal(0, 1).sample([N_obs])
+observations = torch.randn(N_obs, names=(None,))
 ```
 
 ### Define model
 
 ```python tags=[]
-with pm.Model() as model:
-    mu = pm.Normal("mu", mu=0, sigma=1)
-    sd = pm.HalfNormal("sd", sigma=1)
-    obs = pm.Normal("obs", mu=mu, sigma=sd, observed=observations)
+def model(obs=None):
+    mu = pyro.sample("mu", dist.Normal(0, 1))
+    sigma = pyro.sample("sigma", dist.HalfNormal(1))
+    with pyro.plate("N_obs", N_obs):
+        pyro.sample("obs", dist.Normal(mu, sigma), obs=obs)
 ```
 
-```python
-pm.model_to_graphviz(model)
+```python tags=[]
+pyro.render_model(
+    model, model_args=(observations,), render_distributions=True, render_params=True
+)
 ```
 
 ### Fit model
 
 ```python tags=[]
-with model:
-    prior = pm.sample_prior_predictive()
-    trace = pm.sample(1000, tune=500, cores=4, return_inferencedata=False)
-    posterior_predictive = pm.sample_posterior_predictive(trace)
-```
-
-```python
-[v.shape for k,v in posterior_predictive.items()]
+R = 1000
 ```
 
 ```python tags=[]
-[v.shape for k,v in prior.items()]
+kernel = NUTS(model, jit_compile=False)
 ```
 
+```python tags=[]
+mcmc = MCMC(kernel, warmup_steps=500, num_samples=R, num_chains=4)
+```
+
+```python tags=[]
+mcmc.run(observations)
+```
+
+```python tags=[]
+posterior_samples = mcmc.get_samples(group_by_chain=False)
+```
+
+```python tags=[]
+# rng_key, rng_key_ = jax.random.split(rng_key)
+posterior_predictive = Predictive(model, posterior_samples)
+posterior_predictions = posterior_predictive()
+```
+
+```python tags=[]
+[v.shape for k, v in posterior_predictions.items()]
+```
+
+```python tags=[]
+# rng_key, rng_key_ = jax.random.split(rng_key)
+prior_predictive = Predictive(model, num_samples=500)
+prior_predictions = prior_predictive()
+```
+
+```python tags=[]
+[v.shape for k, v in prior_predictions.items()]
+```
+
+<!-- #region {"tags": []} -->
 ### Organize output data
+<!-- #endregion -->
 
 ```python tags=[]
-with model:
-    data = az.from_pymc3(
-        model=model,
-        trace=trace,
-        prior=prior,
-        posterior_predictive=posterior_predictive,
-    )
+data = az.from_pyro(
+    mcmc,
+    prior=prior_predictions,
+    posterior_predictive=posterior_predictions,
+)
 ```
 
 ```python tags=[]
@@ -158,22 +227,13 @@ data
 #### Plot autocorrelation to evaluate MCMC chain mixing
 
 ```python tags=[]
-with model:
-    az.plot_autocorr(trace, var_names=["mu", "sd"])
+az.plot_autocorr(data, var_names=["mu", "sigma"])
 ```
 
 #### Plot prior and posterior predictive distributions
 
-```python
-data.prior_predictive
-```
-
-```python
-data.posterior_predictive
-```
-
 ```python tags=[]
-az.plot_ppc(
+ax_pr_pred_cum = az.plot_ppc(
     data,
     group="prior",
     data_pairs={"obs": "obs"},
@@ -181,6 +241,7 @@ az.plot_ppc(
     num_pp_samples=100,
     random_seed=7,
 )
+ax_pr_pred_cum.set_xlim([-7, 5.5])
 az.plot_ppc(
     data,
     group="posterior",
@@ -192,23 +253,14 @@ az.plot_ppc(
 ```
 
 ```python tags=[]
-print(data.prior_predictive.sizes["chain"])
-data.prior_predictive.sizes["draw"]
-```
-
-```python
-print(data.posterior_predictive.sizes["chain"])
-data.posterior_predictive.sizes["draw"]
-```
-
-```python tags=[]
-az.plot_ppc(
-    data, 
-    group="prior", 
-    data_pairs={"obs": "obs"}, 
-    num_pp_samples=100, 
-    random_seed=7
+ax_pr_pred = az.plot_ppc(
+    data,
+    group="prior",
+    data_pairs={"obs": "obs"},
+    num_pp_samples=100,
+    random_seed=7,
 )
+ax_pr_pred.set_xlim([-5, 5])
 az.plot_ppc(
     data,
     group="posterior",
@@ -224,4 +276,8 @@ az.plot_ppc(
 az.plot_forest(data)
 az.plot_trace(data)
 az.plot_posterior(data)
+```
+
+```python
+
 ```

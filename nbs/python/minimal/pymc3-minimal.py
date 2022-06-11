@@ -95,10 +95,10 @@ plt.rcParams.update(
 # %% [markdown]
 # ### Define sample data
 
-# %%
+# %% {"tags": []}
 N_obs = 100
 
-# %%
+# %% {"tags": []}
 observations = np.random.randn(N_obs)
 
 # %% [markdown]
@@ -122,6 +122,12 @@ with model:
     trace = pm.sample(1000, tune=500, cores=4, return_inferencedata=False)
     posterior_predictive = pm.sample_posterior_predictive(trace)
 
+# %%
+[v.shape for k,v in posterior_predictive.items()]
+
+# %% {"tags": []}
+[v.shape for k,v in prior.items()]
+
 # %% [markdown]
 # ### Organize output data
 
@@ -133,18 +139,6 @@ with model:
         prior=prior,
         posterior_predictive=posterior_predictive,
     )
-
-# %% {"tags": []}
-posterior_predictive["obs"].shape
-
-# %%
-[v.shape for k,v in prior.items()]
-
-# %% {"tags": []}
-prior["obs"].shape
-
-# %% {"tags": []}
-prior["mu"].shape
 
 # %% {"tags": []}
 data
