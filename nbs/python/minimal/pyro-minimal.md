@@ -9,11 +9,11 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.14.0
   kernelspec:
-    display_name: Python 3 (ipykernel)
+    display_name: api
     language: python
-    name: python3
+    name: api
   language_info:
     codemirror_mode:
       name: ipython
@@ -23,7 +23,7 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.10.4
+    version: 3.10.9
   rise:
     scroll: true
     theme: black
@@ -53,15 +53,40 @@ jupyter:
 ```
 
 ```python tags=[]
+import os
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+print(os.environ["CUBLAS_WORKSPACE_CONFIG"])
+```
+
+```python tags=[]
 from inspect import getmembers
 from pprint import pprint
 from types import FunctionType
 
 import arviz as az
 import numpy as np
+import torch
+```
+
+```python tags=[]
+# torch.use_deterministic_algorithms(True)
+# torch.backends.cudnn.benchmark=False
+# torch.backends.cudnn.deterministic=True
+```
+
+```python tags=[]
+SEED = 1234
+```
+
+```python tags=[]
+np.random.seed(seed=SEED)
+torch.manual_seed(SEED)
+```
+
+```python tags=[]
 import pyro
 import pyro.distributions as dist
-import torch
+
 from pyro.infer import MCMC, NUTS, Predictive
 import platform
 
@@ -69,8 +94,7 @@ import platform
 ```
 
 ```python tags=[]
-# pyro.set_platform("cpu")
-# pyro.set_host_device_count(4)
+print(pyro.settings.get())
 ```
 
 ```python tags=[]
@@ -78,6 +102,11 @@ print(platform.python_version())
 print(pyro.__version__)
 print(torch.__version__)
 print(az.__version__)
+```
+
+```python tags=[]
+print(torch.cuda.is_available())
+print(torch.cuda.device_count())
 ```
 
 ### Setup plotting
@@ -90,9 +119,9 @@ import matplotlib.pyplot as plt
 ```
 
 ```python slideshow={"slide_type": "fragment"} tags=[]
-# fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
+fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
 # fonts_path = "~/Library/Fonts/" # macos
-fonts_path = "/usr/share/fonts/OTF/"  # arch
+# fonts_path = "/usr/share/fonts/OTF/"  # arch
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmsans10-regular.otf")
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmroman10-regular.otf")
 ```
@@ -144,7 +173,8 @@ N_obs = 100
 
 ```python tags=[]
 # observations = dist.Normal(0, 1).sample([N_obs])
-observations = torch.randn(N_obs, names=(None,))
+# observations = torch.randn(N_obs, names=(None,))
+observations = torch.randn(N_obs)
 ```
 
 ### Define model
@@ -175,6 +205,11 @@ kernel = NUTS(model, jit_compile=False)
 
 ```python tags=[]
 mcmc = MCMC(kernel, warmup_steps=500, num_samples=R, num_chains=4)
+```
+
+```python tags=[]
+import os
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 ```
 
 ```python tags=[]

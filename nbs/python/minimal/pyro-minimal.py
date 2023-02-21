@@ -9,11 +9,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.13.8
+#       jupytext_version: 1.14.0
 #   kernelspec:
-#     display_name: Python 3 (ipykernel)
+#     display_name: api
 #     language: python
-#     name: python3
+#     name: api
 #   language_info:
 #     codemirror_mode:
 #       name: ipython
@@ -23,7 +23,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.10.4
+#     version: 3.10.9
 #   rise:
 #     scroll: true
 #     theme: black
@@ -53,29 +53,52 @@
 # # !sudo pip install git+https://github.com/pyro-ppl/pyro.git
 
 # %% {"tags": []}
+import os
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
+print(os.environ["CUBLAS_WORKSPACE_CONFIG"])
+
+# %% {"tags": []}
 from inspect import getmembers
 from pprint import pprint
 from types import FunctionType
 
 import arviz as az
 import numpy as np
+import torch
+
+# %% {"tags": []}
+# torch.use_deterministic_algorithms(True)
+# torch.backends.cudnn.benchmark=False
+# torch.backends.cudnn.deterministic=True
+
+# %% {"tags": []}
+SEED = 1234
+
+# %% {"tags": []}
+np.random.seed(seed=SEED)
+torch.manual_seed(SEED)
+
+# %% {"tags": []}
 import pyro
 import pyro.distributions as dist
-import torch
+
 from pyro.infer import MCMC, NUTS, Predictive
 import platform
 
 # az.style.use("arviz-darkgrid")
 
 # %% {"tags": []}
-# pyro.set_platform("cpu")
-# pyro.set_host_device_count(4)
+print(pyro.settings.get())
 
 # %% {"tags": []}
 print(platform.python_version())
 print(pyro.__version__)
 print(torch.__version__)
 print(az.__version__)
+
+# %% {"tags": []}
+print(torch.cuda.is_available())
+print(torch.cuda.device_count())
 
 # %% [markdown]
 # ### Setup plotting
@@ -87,9 +110,9 @@ import matplotlib.pyplot as plt
 # import matplotlib_inline
 
 # %% {"slideshow": {"slide_type": "fragment"}, "tags": []}
-# fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
+fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
 # fonts_path = "~/Library/Fonts/" # macos
-fonts_path = "/usr/share/fonts/OTF/"  # arch
+# fonts_path = "/usr/share/fonts/OTF/"  # arch
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmsans10-regular.otf")
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmroman10-regular.otf")
 
@@ -140,7 +163,8 @@ N_obs = 100
 
 # %% {"tags": []}
 # observations = dist.Normal(0, 1).sample([N_obs])
-observations = torch.randn(N_obs, names=(None,))
+# observations = torch.randn(N_obs, names=(None,))
+observations = torch.randn(N_obs)
 
 
 # %% [markdown]
@@ -170,6 +194,10 @@ kernel = NUTS(model, jit_compile=False)
 
 # %% {"tags": []}
 mcmc = MCMC(kernel, warmup_steps=500, num_samples=R, num_chains=4)
+
+# %% {"tags": []}
+import os
+os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 # %% {"tags": []}
 mcmc.run(observations)
