@@ -6,6 +6,8 @@ name: api
 #   conda-lock install -n ENV conda-lock.yml
 
 channels:
+  # - pytorch
+  # - nvidia
   - conda-forge
   - bioconda
   # https://stackoverflow.com/a/71110028/446907
@@ -15,15 +17,15 @@ channels:
   - nodefaults
 
 dependencies:
-  - python=3.9.16
+  - python #=3.9.16
   - pip
   - ipykernel
   - ipywidgets
-  - pytorch-gpu #=1.*=cuda11*
-  - pyro-ppl=1.8
-  # - numpyro=0.11.0
-  # - jax
-  # - jaxlib
+  - pytorch-gpu=*=cuda11*
+  - pyro-ppl=1.8.4
+  - numpyro=0.11.0
+  - jax
+  - jaxlib
   - pandas
   - pytest
   - arviz
@@ -34,7 +36,7 @@ dependencies:
   - anndata
   - scanpy
   - h5py
-  # - scvi-tools=0.20
+  - scvi-tools=0.20
   - scvelo=0.2.5
 
 # Non-standard section listing target platforms for conda-lock:
