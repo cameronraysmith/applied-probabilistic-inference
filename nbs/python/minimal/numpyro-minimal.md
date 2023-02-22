@@ -9,11 +9,11 @@ jupyter:
       extension: .md
       format_name: markdown
       format_version: '1.3'
-      jupytext_version: 1.13.8
+      jupytext_version: 1.14.0
   kernelspec:
-    display_name: Python 3 (ipykernel)
+    display_name: api
     language: python
-    name: python3
+    name: api
   language_info:
     codemirror_mode:
       name: ipython
@@ -23,7 +23,7 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.10.4
+    version: 3.9.16
   rise:
     scroll: true
     theme: black
@@ -40,12 +40,16 @@ jupyter:
 # Minimal example in numpyro
 
 
+## Debug
+
+
 ## Setup
 
 
 ### Import libraries
 
 ```python tags=[]
+import platform
 from inspect import getmembers
 from pprint import pprint
 from types import FunctionType
@@ -57,8 +61,6 @@ import numpy as np
 import numpyro
 import numpyro.distributions as dist
 from numpyro.infer import MCMC, NUTS, Predictive
-
-# az.style.use("arviz-darkgrid")
 ```
 
 ```python tags=[]
@@ -67,9 +69,9 @@ numpyro.set_host_device_count(4)
 ```
 
 ```python tags=[]
+print(platform.python_version())
 print(numpyro.__version__)
 print(jax.__version__)
-# print(pm.__version__)
 print(az.__version__)
 ```
 
@@ -83,9 +85,9 @@ import matplotlib.pyplot as plt
 ```
 
 ```python slideshow={"slide_type": "fragment"} tags=[]
-# fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
+fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
 # fonts_path = "~/Library/Fonts/" # macos
-fonts_path = "/usr/share/fonts/OTF/"  # arch
+# fonts_path = "/usr/share/fonts/OTF/"  # arch
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmsans10-regular.otf")
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmroman10-regular.otf")
 ```
@@ -110,7 +112,7 @@ plt.rcParams.update(
 
 ### Utility functions
 
-```python
+```python tags=[]
 def attributes(obj):
     disallowed_names = {
         name for name, value in getmembers(type(obj)) if isinstance(value, FunctionType)
@@ -131,7 +133,7 @@ def print_attributes(obj):
 
 ### Define sample data
 
-```python
+```python tags=[]
 N_obs = 100
 ```
 
@@ -192,7 +194,7 @@ posterior_predictive = Predictive(model, posterior_samples)
 posterior_predictions = posterior_predictive(rng_key_)
 ```
 
-```python
+```python tags=[]
 [v.shape for k, v in posterior_predictions.items()]
 ```
 
@@ -233,10 +235,28 @@ data
 
 ```python tags=[]
 # with model:
-az.plot_autocorr(data, var_names=["mu", "sigma"])
+az.plot_autocorr(data, var_names=["mu", "sigma"]);
 ```
 
 #### Plot prior and posterior predictive distributions
+
+```python tags=[]
+ax_pr_pred = az.plot_ppc(
+    data,
+    group="prior",
+    data_pairs={"obs": "obs"},
+    num_pp_samples=100,
+    random_seed=7,
+)
+ax_pr_pred.set_xlim([-5, 5])
+az.plot_ppc(
+    data,
+    group="posterior",
+    data_pairs={"obs": "obs"},
+    num_pp_samples=100,
+    random_seed=7,
+);
+```
 
 ```python tags=[]
 ax_pr_pred_cum = az.plot_ppc(
@@ -258,30 +278,12 @@ az.plot_ppc(
 );
 ```
 
-```python tags=[]
-ax_pr_pred = az.plot_ppc(
-    data,
-    group="prior",
-    data_pairs={"obs": "obs"},
-    num_pp_samples=100,
-    random_seed=7,
-)
-ax_pr_pred.set_xlim([-5, 5])
-az.plot_ppc(
-    data,
-    group="posterior",
-    data_pairs={"obs": "obs"},
-    num_pp_samples=100,
-    random_seed=7,
-);
-```
-
 #### Characterize posterior distribution
 
 ```python tags=[]
-az.plot_forest(data)
-az.plot_trace(data)
-az.plot_posterior(data)
+az.plot_forest(data);
+az.plot_trace(data);
+az.plot_posterior(data);
 ```
 
 ```python
