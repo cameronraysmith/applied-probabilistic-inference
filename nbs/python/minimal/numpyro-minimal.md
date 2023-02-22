@@ -23,7 +23,7 @@ jupyter:
     name: python
     nbconvert_exporter: python
     pygments_lexer: ipython3
-    version: 3.9.16
+    version: 3.10.9
   rise:
     scroll: true
     theme: black
@@ -39,12 +39,13 @@ jupyter:
 
 # Minimal example in numpyro
 
-
+<!-- #region {"jp-MarkdownHeadingCollapsed": true, "tags": []} -->
 ## Debug
+<!-- #endregion -->
 
-
+<!-- #region {"jp-MarkdownHeadingCollapsed": true, "tags": []} -->
 ## Setup
-
+<!-- #endregion -->
 
 ### Import libraries
 
@@ -152,9 +153,9 @@ def model(obs=None):
 ```
 
 ```python tags=[]
-numpyro.render_model(
-    model, model_args=(observations,), render_distributions=True, render_params=True
-)
+# numpyro.render_model(
+#     model, model_args=(observations,), render_distributions=True, render_params=True
+# )
 ```
 
 ### Fit model
