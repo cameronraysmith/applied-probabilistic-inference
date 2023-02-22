@@ -17,3 +17,10 @@ install-conda: ## Install conda environment from lockfile.
 
 install-kernel: ## Instal jupyter kernel for conda environment.
 	/opt/conda/envs/api/bin/python -m ipykernel install --prefix=/opt/conda/ --name=api
+
+extract-figures: ## Extract figures from notebooks.
+	cd nbs/python/minimal
+	junix -f pyro-minimal.ipynb -o figures/pyro/ -p figure
+	for i in figures/pyro/*.svg;do rsvg-convert -f pdf -o ${i%.*}.pdf $i;done
+	junix -f numpyro-minimal.ipynb -o figures/numpyro/ -p figure
+	for i in figures/numpyro/*.svg;do rsvg-convert -f pdf -o ${i%.*}.pdf $i;done
