@@ -1,6 +1,11 @@
 # ---
 # jupyter:
 #   celltoolbar: Slideshow
+#   environment:
+#     kernel: api
+#     name: pytorch-gpu.1-12.m100
+#     type: gcloud
+#     uri: gcr.io/deeplearning-platform-release/pytorch-gpu.1-12:m100
 #   jupytext:
 #     cell_metadata_json: true
 #     formats: ipynb,md,py:percent
@@ -9,11 +14,11 @@
 #       extension: .py
 #       format_name: percent
 #       format_version: '1.3'
-#       jupytext_version: 1.14.0
+#       jupytext_version: 1.14.6
 #   kernelspec:
 #     display_name: api
 #     language: python
-#     name: api
+#     name: python3
 #   language_info:
 #     codemirror_mode:
 #       name: ipython
@@ -23,7 +28,7 @@
 #     name: python
 #     nbconvert_exporter: python
 #     pygments_lexer: ipython3
-#     version: 3.10.9
+#     version: 3.10.12
 #   rise:
 #     scroll: true
 #     theme: black
@@ -40,16 +45,16 @@
 # %% [markdown]
 # # Minimal example in pyro
 
-# %% [markdown] {"tags": [], "jp-MarkdownHeadingCollapsed": true}
+# %% [markdown] {"jp-MarkdownHeadingCollapsed": true}
 # ## Debug
 
-# %% {"tags": []}
+# %%
 # may need development version of pyro
 # when running on python 3.10
 # see: https://github.com/pyro-ppl/pyro/pull/3101
 # # !sudo pip install git+https://github.com/pyro-ppl/pyro.git
 
-# %% {"tags": []}
+# %%
 # # importing os module 
 # import os
 # import pprint
@@ -63,7 +68,7 @@
 # print("User's Environment variable:")
 # pprint.pprint(dict(env_var), width = 1)
 
-# %% {"tags": []}
+# %%
 # # %%bash
 
 # which python
@@ -77,22 +82,22 @@
 # %% [markdown]
 # ## Setup
 
-# %% {"tags": []}
+# %%
 USE_CUDA = False
 TORCH_DETERMINISTIC = True
 
-# %% [markdown] {"tags": []}
+# %% [markdown]
 # ### Import libraries
 
-# %% {"tags": []}
+# %%
 import os
 
-# %% {"tags": []}
+# %%
 if TORCH_DETERMINISTIC:
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     print(os.environ["CUBLAS_WORKSPACE_CONFIG"])
 
-# %% {"tags": []}
+# %%
 from inspect import getmembers
 from pprint import pprint
 from types import FunctionType
@@ -101,63 +106,63 @@ import arviz as az
 import numpy as np
 import torch
 
-# %% {"tags": []}
+# %%
 torch.use_deterministic_algorithms(TORCH_DETERMINISTIC)
 
-# %% {"tags": []}
+# %%
 SEED = 1234
 
-# %% {"tags": []}
+# %%
 np.random.seed(seed=SEED);
 torch.manual_seed(SEED);
 
-# %% {"tags": []}
+# %%
 import pyro
 import pyro.distributions as dist
 
 from pyro.infer import MCMC, NUTS, Predictive
 import platform
 
-# %% {"tags": []}
+# %%
 print(pyro.settings.get())
 
-# %% {"tags": []}
+# %%
 print(platform.python_version())
 print(pyro.__version__)
 print(torch.__version__)
 print(az.__version__)
 
-# %% {"tags": []}
+# %%
 if not USE_CUDA:
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
     torch.cuda.is_available = lambda : False
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
-# %% {"tags": []}
+# %%
 print(torch.cuda.is_available())
 print(torch.cuda.device_count())
 
-# %% [markdown] {"jp-MarkdownHeadingCollapsed": true, "tags": []}
+# %% [markdown] {"jp-MarkdownHeadingCollapsed": true}
 # ### Setup plotting
 
-# %% {"slideshow": {"slide_type": "fragment"}, "tags": []}
+# %% {"slideshow": {"slide_type": "fragment"}}
 import matplotlib.font_manager
 import matplotlib.pyplot as plt
 
 # import matplotlib_inline
 
-# %% {"slideshow": {"slide_type": "fragment"}, "tags": []}
+# %% {"slideshow": {"slide_type": "fragment"}}
 fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
 # fonts_path = "~/Library/Fonts/" # macos
 # fonts_path = "/usr/share/fonts/OTF/"  # arch
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmsans10-regular.otf")
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmroman10-regular.otf")
 
-# %% {"slideshow": {"slide_type": "fragment"}, "tags": []}
+# %% {"slideshow": {"slide_type": "fragment"}}
 # https://stackoverflow.com/a/36622238/446907
 # %config InlineBackend.figure_formats = ['svg']
 
-# %% {"slideshow": {"slide_type": "fragment"}, "tags": []}
+# %% {"slideshow": {"slide_type": "fragment"}}
 plt.style.use("default")  # reset default parameters
 # https://stackoverflow.com/a/3900167/446907
 plt.rcParams.update(
@@ -170,10 +175,10 @@ plt.rcParams.update(
 )
 
 
-# %% [markdown] {"jp-MarkdownHeadingCollapsed": true, "tags": []}
+# %% [markdown] {"jp-MarkdownHeadingCollapsed": true}
 # ### Utility functions
 
-# %% {"tags": []}
+# %%
 def attributes(obj):
     disallowed_names = {
         name for name, value in getmembers(type(obj)) if isinstance(value, FunctionType)
@@ -195,10 +200,10 @@ def print_attributes(obj):
 # %% [markdown]
 # ### Define sample data
 
-# %% {"tags": []}
+# %%
 N_obs = 100
 
-# %% {"tags": []}
+# %%
 # device=torch.device("cpu")
 # observations = dist.Normal(0, 1).sample([N_obs])
 observations = torch.randn(
@@ -207,14 +212,14 @@ observations = torch.randn(
     # device=device,
 )
 
-# %% {"tags": []}
+# %%
 observations
 
 
 # %% [markdown]
 # ### Define model
 
-# %% {"tags": []}
+# %%
 def model(obs=None):
     mu = pyro.sample("mu", dist.Normal(0, 1))
     sigma = pyro.sample("sigma", dist.HalfNormal(1))
@@ -222,7 +227,7 @@ def model(obs=None):
         pyro.sample("obs", dist.Normal(mu, sigma), obs=obs)
 
 
-# %% {"tags": []}
+# %%
 pyro.render_model(
     model, 
     model_args=(observations,), 
@@ -233,17 +238,17 @@ pyro.render_model(
 # %% [markdown]
 # ### Fit model
 
-# %% {"tags": []}
+# %%
 R = 1000
 
-# %% {"tags": []}
+# %%
 prior_predictive = Predictive(model, num_samples=500)
 prior_predictions = prior_predictive()
 
-# %% {"tags": []}
+# %%
 kernel = NUTS(model, jit_compile=False)
 
-# %% {"tags": []}
+# %%
 mcmc = MCMC(
     kernel, 
     warmup_steps=500, 
@@ -252,37 +257,37 @@ mcmc = MCMC(
     # mp_context="spawn"
 )
 
-# %% {"tags": []}
+# %%
 mcmc.run(observations)
 
-# %% {"tags": []}
+# %%
 posterior_samples = mcmc.get_samples(group_by_chain=False)
 
-# %% {"tags": []}
+# %%
 posterior_predictive = Predictive(model, posterior_samples)
 posterior_predictions = posterior_predictive()
 
-# %% {"tags": []}
+# %%
 [v.shape for k, v in posterior_predictions.items()]
 
-# %% {"tags": []}
+# %%
 prior_predictive = Predictive(model, num_samples=500)
 prior_predictions = prior_predictive()
 
-# %% {"tags": []}
+# %%
 [v.shape for k, v in prior_predictions.items()]
 
-# %% [markdown] {"tags": []}
+# %% [markdown]
 # ### Organize output data
 
-# %% {"tags": []}
+# %%
 data = az.from_pyro(
     mcmc,
     prior=prior_predictions,
     posterior_predictive=posterior_predictions,
 )
 
-# %% {"tags": []}
+# %%
 data
 
 # %% [markdown]
@@ -291,13 +296,13 @@ data
 # %% [markdown]
 # #### Plot autocorrelation to evaluate MCMC chain mixing
 
-# %% {"tags": []}
+# %%
 az.plot_autocorr(data, var_names=["mu", "sigma"]);
 
 # %% [markdown]
 # #### Plot prior and posterior predictive distributions
 
-# %% {"tags": []}
+# %%
 ax_pr_pred = az.plot_ppc(
     data,
     group="prior",
@@ -314,7 +319,7 @@ az.plot_ppc(
     random_seed=7,
 );
 
-# %% {"tags": []}
+# %%
 ax_pr_pred_cum = az.plot_ppc(
     data,
     group="prior",
@@ -336,7 +341,7 @@ az.plot_ppc(
 # %% [markdown]
 # #### Characterize posterior distribution
 
-# %% {"tags": []}
+# %%
 az.plot_forest(data);
 az.plot_trace(data);
 az.plot_posterior(data);
