@@ -26,6 +26,7 @@ dependencies:
   - numpyro=0.12.1
   - jax
   - jaxlib=*=*cuda*
+  - diffrax
   - jupytext
   - pandas
   - pytest
