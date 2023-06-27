@@ -1,0 +1,45 @@
+name: api
+
+# generate lock file:
+#   conda-lock --conda mamba --log-level DEBUG -f environment.yml --lockfile conda-lock.yml
+# see conda-lock.yml header for installation instructions:
+#   conda-lock install -n ENV conda-lock.yml
+
+channels:
+  # - pytorch
+  # - nvidia
+  - conda-forge
+  - bioconda
+  # https://stackoverflow.com/a/71110028/446907
+  # We want to have a reproducible setup, so we don't want default channels,
+  # which may be different for different users. All required channels should
+  # be listed explicitly above.
+  - nodefaults
+
+dependencies:
+  - python #=3.9.16
+  - pip
+  - ipykernel
+  - ipywidgets
+  - pytorch-gpu=*=cuda11*
+  - pyro-ppl=1.8.4
+  - numpyro=0.12.1
+  - jax
+  - jaxlib=*=*cuda*
+  - jupytext
+  - pandas
+  - pytest
+  - arviz
+  - matplotlib
+  - matplotlib-inline
+  - seaborn
+  - python-graphviz
+  - anndata
+  - scanpy
+  - h5py
+  - scvi-tools=1.0.0
+  - scvelo=0.2.5
+
+# Non-standard section listing target platforms for conda-lock:
+platforms:
+  - linux-64
