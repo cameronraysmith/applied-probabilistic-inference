@@ -23,9 +23,10 @@ dependencies:
   - ipywidgets
   - pytorch-gpu=*=cuda11*
   - pyro-ppl=1.8.4
-  - numpyro=0.11.0
+  - numpyro=0.12.1
   - jax
-  - jaxlib
+  - jaxlib=*=*cuda*
+  - jupytext
   - pandas
   - pytest
   - arviz
@@ -36,7 +37,7 @@ dependencies:
   - anndata
   - scanpy
   - h5py
-  - scvi-tools=0.20
+  - scvi-tools=1.0.0
   - scvelo=0.2.5
 
 # Non-standard section listing target platforms for conda-lock:
