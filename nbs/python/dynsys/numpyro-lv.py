@@ -61,6 +61,7 @@ from pprint import pprint
 from types import FunctionType
 
 import arviz as az
+import matplotlib.pyplot as plt
 import jax
 import jax.numpy as jnp
 import numpy as np
@@ -74,8 +75,13 @@ from numpyro.examples.datasets import LYNXHARE, load_dataset
 from numpyro.infer import MCMC, NUTS, Predictive
 
 # %%
+import warnings
+
+warnings.filterwarnings("ignore")
+
+# %%
 numpyro.set_platform("cpu")
-numpyro.set_host_device_count(4)
+numpyro.set_host_device_count(8)
 
 # %%
 print(platform.python_version())
@@ -97,7 +103,7 @@ import matplotlib.pyplot as plt
 # import matplotlib_inline
 
 # %% {"slideshow": {"slide_type": "fragment"}}
-fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/" #ubuntu
+fonts_path = "/usr/share/texmf/fonts/opentype/public/lm/"  # ubuntu
 # fonts_path = "~/Library/Fonts/" # macos
 # fonts_path = "/usr/share/fonts/OTF/"  # arch
 matplotlib.font_manager.fontManager.addfont(fonts_path + "lmsans10-regular.otf")
@@ -181,7 +187,6 @@ def dz_dt(z, t, theta):
     return jnp.stack([du_dt, dv_dt])
 
 
-
 # %% [markdown]
 # #### Define probabilistic model
 
@@ -212,10 +217,15 @@ def model(N, y=None):
     numpyro.sample("y", dist.LogNormal(jnp.log(z), sigma), obs=y)
 
 
-
 # %%
 numpyro.render_model(
-    model, model_args=(data.shape[0], data,), render_distributions=True, render_params=True
+    model,
+    model_args=(
+        data.shape[0],
+        data,
+    ),
+    render_distributions=True,
+    render_params=True,
 )
 
 # %% [markdown]
@@ -232,22 +242,95 @@ prior_predictive = Predictive(model, num_samples=1000)
 prior_predictions = prior_predictive(rng_key_, data.shape[0])
 
 # %%
-idata_prior = az.from_numpyro(posterior=None, prior=prior_predictions)
+idata_prior = az.from_numpyro(
+    posterior=None,
+    prior=prior_predictions,
+    posterior_predictive={"y": prior_predictions["y"]},
+)
+import xarray as xr
+
+observed_data = xr.Dataset(
+    {"y": (["y_dim_0", "y_dim_1"], data)},
+    coords={"y_dim_0": range(data.shape[0]), "y_dim_1": range(data.shape[1])},
+)
+idata_prior.add_groups(observed_data=observed_data)
+
+# %%
+observed_y = idata_prior.observed_data["y"]
+prior_samples = idata_prior.prior["y"]
+
+fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(10, 10), sharex=True)
+
+ax1.plot(observed_y[:, 0], label="hare", color="green")
+ax1.plot(observed_y[:, 1], label="lynx", color="gray")
+
+selected_indices = np.random.choice(prior_samples.shape[1], 20, replace=False)
+max_val = 0
+for i in selected_indices:
+    ax1.plot(prior_samples[0, i, :, 0], color="green", alpha=0.1)
+    ax1.plot(prior_samples[0, i, :, 1], color="gray", alpha=0.1)
+    # max_val = max(max_val, prior_samples[0, i, :, 0].max(), prior_samples[0, i, :, 1].max())
+
+max_val = observed_y.max()
+ax1.set_ylim([-0.01, max_val * 1.1])
+
+ax2.plot(observed_y[:, 0], label="hare", color="green")
+ax2.plot(observed_y[:, 1], label="lynx", color="gray")
+for i in selected_indices:
+    ax2.plot(prior_samples[0, i, :, 0], color="green", alpha=0.1)
+    ax2.plot(prior_samples[0, i, :, 1], color="gray", alpha=0.1)
+
+ax2.set_yscale("log")
+
+ax1.set_ylabel("Population number (linear)")
+ax2.set_xlabel("Time (years)")
+ax2.set_ylabel("(log)")
+ax1.legend()
+ax1.set_title("Observed Data and Prior Sample Trajectories")
+
+plt.tight_layout()
+plt.show()
 
 # %%
 idata_prior
 
 # %%
-light_gray = (0.7,0.7,0.7)
+light_gray = (0.7, 0.7, 0.7)
 
 # %%
-az.plot_posterior(idata_prior, var_names=["sigma"], group="prior", kind="hist", round_to=2, hdi_prob=0.89, color=light_gray);
+az.plot_posterior(
+    idata_prior,
+    var_names=["sigma"],
+    group="prior",
+    kind="hist",
+    round_to=2,
+    hdi_prob=0.89,
+    color=light_gray,
+);
 
 # %%
-az.plot_posterior(idata_prior, var_names=["theta"], grid=(2,2), group="prior", kind="hist", round_to=2, hdi_prob=0.89, color=light_gray);
+az.plot_posterior(
+    idata_prior,
+    var_names=["theta"],
+    grid=(2, 2),
+    group="prior",
+    kind="hist",
+    round_to=2,
+    hdi_prob=0.89,
+    color=light_gray,
+);
 
 # %%
-az.plot_posterior(idata_prior, var_names=["z_init"], grid=(1,2), group="prior", kind="hist", round_to=2, hdi_prob=0.89, color=light_gray);
+az.plot_posterior(
+    idata_prior,
+    var_names=["z_init"],
+    grid=(1, 2),
+    group="prior",
+    kind="hist",
+    round_to=2,
+    hdi_prob=0.89,
+    color=light_gray,
+);
 
 # %% [markdown]
 # ### Fit model
@@ -316,35 +399,48 @@ az.plot_autocorr(inferencedata, var_names=["sigma", "theta"]);
 # #### Plot prior and posterior predictive distributions
 
 # %%
-ax_postpc = az.plot_ts(inferencedata, y="y", plot_dim="y_dim_0");
+ax_ppc = az.plot_ts(idata_prior, y="y", plot_dim="y_dim_0")
+for ax in ax_ppc[0]:
+    ax.set_xlim([-1, 93])
+    ax.set_ylim([-1, 200])
+
+# %%
+
+ax_ppc_log = az.plot_ts(idata_prior, y="y", plot_dim="y_dim_0")
+for ax in ax_ppc_log[0]:
+    ax.set_yscale("log")
+
+# %%
+ax_postpc = az.plot_ts(inferencedata, y="y", plot_dim="y_dim_0")
 for ax in ax_postpc[0]:
     ax.set_xlim([-1, 93])
     ax.set_ylim([-1, 200])
 
 # %%
-idataprior = az.from_numpyro(
-    mcmc,
-    prior=prior_predictions,
-    posterior_predictive={"y": prior_predictions["y"]}
-)
-
-# %%
-ax_ppc = az.plot_ts(idataprior, y="y", plot_dim="y_dim_0");
-for ax in ax_ppc[0]:
-    ax.set_xlim([-1, 93])
-    ax.set_ylim([-1, 200])
+ax_postpc_log = az.plot_ts(inferencedata, y="y", plot_dim="y_dim_0")
+for ax in ax_postpc_log[0]:
+    ax.set_yscale("log")
 
 # %% [markdown]
 # #### Characterize posterior distribution
 
 # %%
-az.plot_forest(inferencedata, var_names=["theta"]);
-az.plot_forest(inferencedata, var_names=["sigma"]);
+az.plot_posterior(
+    inferencedata, var_names=["sigma"], grid=(1, 2), kind="hist", color=light_gray
+)
+az.plot_posterior(
+    inferencedata, var_names=["theta"], grid=(2, 2), kind="hist", color=light_gray
+)
+az.plot_posterior(
+    inferencedata, var_names=["z_init"], grid=(1, 2), kind="hist", color=light_gray
+);
+
+# %%
+az.plot_forest(inferencedata, var_names=["theta"])
+az.plot_forest(inferencedata, var_names=["sigma"])
 az.plot_forest(inferencedata, var_names=["z_init"]);
 
 # %%
-
-az.plot_trace(inferencedata);
-az.plot_posterior(inferencedata, kind="hist", color=light_gray);
+az.plot_trace(inferencedata, rug=True);
 
 # %%
