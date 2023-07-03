@@ -73,7 +73,15 @@ import numpyro.distributions as dist
 from jax.experimental.ode import odeint
 from numpyro.examples.datasets import LYNXHARE, load_dataset
 from numpyro.infer import MCMC, NUTS, Predictive
-from diffrax import diffeqsolve, ODETerm, Tsit5, Dopri5, BacksolveAdjoint, SaveAt, PIDController
+from diffrax import (
+    diffeqsolve,
+    ODETerm,
+    Tsit5,
+    Dopri5,
+    BacksolveAdjoint,
+    SaveAt,
+    PIDController,
+)
 ```
 
 ```python
@@ -160,28 +168,175 @@ def print_attributes(obj):
 ## Execute
 
 
-### Define sample data
+### Load sample data
 
 ```python
 _, fetch = load_dataset(LYNXHARE, shuffle=False)
-year, data = fetch()  # data is in hare -> lynx order
-```
-
-```python
-type(year), year.shape, year.dtype
-```
-
-```python
-type(data), data.shape, data.dtype
+year, original_data = fetch()  # data is in hare -> lynx order
+print(type(year), year.shape, year.dtype)
+print(type(original_data), original_data.shape, original_data.dtype)
 ```
 
 ### Define model
 
 
-#### Simulate dynamical system
+#### Qualitative analysis
+
+
+The Lotka-Volterra model is a set of ordinary differential equations (ODEs) that describes the dynamics of predator-prey interactions:
+
+$$
+\frac{du}{dt} = \alpha u - \beta uv,
+$$
+$$
+\frac{dv}{dt} = -\gamma v + \delta uv.
+$$
+
+Here, $u$ is the number of prey, $v$ is the number of predators, $\alpha$ is the prey's birth rate, $\beta$ is the rate at which predators consume prey, $\gamma$ is the predators' death rate, and $\delta$ is the rate at which predators increase their population by consuming prey.
+
+The system is capable of exhibiting oscillatory behavior. We can find the fixed points by setting the derivatives equal to zero and solving for $u$ and $v$. Doing so yields $(0, 0)$ and $\left(\frac{\gamma}{\delta}, \frac{\alpha}{\beta}\right)$ as the fixed points. The second fixed point is a center in the phase plane, around which the trajectories are closed orbits.
+
+Dividing the equations, we find
+
+$$
+\frac{du}{dv} = \frac{\alpha u - \beta uv}{- \gamma v + \delta uv} = \frac{\alpha}{\gamma} - \left(\frac{\beta}{\gamma} + \frac{\alpha}{\gamma}\right)\frac{v}{u}.
+$$
+
+This equation represents a family of trajectories in the $(u, v)$ phase space, which are closed orbits. This is consistent with the observation that the solutions of the Lotka-Volterra system are periodic.
+
+The non-dimensionalized system can be rewritten as:
+
+$$
+\frac{dU}{d\tau} = (\bar{\alpha} - \bar{\beta} V) U,
+$$
+$$
+\frac{dV}{d\tau} = (-\bar{\gamma} + \bar{\delta} U) V.
+$$
+
+Here, $U = \frac{u}{U_0}$, $V = \frac{v}{V_0}$, and $\tau = \frac{t}{T}$. Also, $\bar{\alpha} = \frac{\alpha T}{U_0}$, $\bar{\beta} = \beta V_0 T$, $\bar{\gamma} = \frac{\gamma T}{V_0}$, and $\bar{\delta} = \delta U_0 T$.
+
+The original parameters can be computed via descaling:
+
+$$
+\alpha = \frac{\bar{\alpha}U_0}{T},
+$$
+$$
+\gamma = \frac{\bar{\gamma}V_0}{T},
+$$
+$$
+\beta = \frac{\bar{\beta}}{V_0 T},
+$$
+$$
+\delta = \frac{\bar{\delta}}{U_0 T}.
+$$
+
+If the rescaled data support amplitudes $M \approx (0.05, 3.5)$ and period $P \approx 10$, we can substitute various choices for the non-dimensionalized constants, and then choose convenient values for $U_0$, $V_0$, and $T$ (e.g. $U_0 = V_0 = 1$, $T = 1$) to obtain the original parameters $\alpha$, $\beta$, $\gamma$, and $\delta$.
+
+
+
+#### Rescale data
 
 ```python
-def dz_dt(t, z, theta):
+from scipy.signal import find_peaks
+
+
+def rescale_data(year, data):
+    year_np = np.array(year)
+    data_np = np.array(data)
+
+    U = data[:, 0]
+    V = data[:, 1]
+
+    U_0 = jnp.mean(U)
+    V_0 = jnp.mean(V)
+
+    # Estimate T as the average period between peaks
+    peaks, _ = find_peaks(data_np[:, 0])
+    if len(peaks) > 1:
+        periods = np.diff(year_np[peaks])
+        T = np.mean(periods)
+    else:
+        T = 1.0
+
+    # Transform U, V, and time
+    T = jnp.array(T)
+    U_transformed = U / U_0
+    V_transformed = V / V_0
+    time_transformed = (year - year[0]) / T
+
+    data_transformed = jnp.stack((U_transformed, V_transformed), axis=-1)
+
+    return U_0, V_0, T, time_transformed, data_transformed
+```
+
+```python
+U_0, V_0, T, time, rescaled_data = rescale_data(year, original_data)
+data = rescaled_data
+print(f"U_0: {U_0:0.2f}, V_0: {V_0}, T: {T}")
+print(type(year), year.shape, year.dtype)
+print(type(data), data.shape, data.dtype)
+```
+
+```python
+type(time), time.shape, time.dtype
+```
+
+```python
+def plot_phase_portrait(data, time, is_ode_solution=False, U_0=1.0, V_0=1.0, T=1.0):
+    
+    if is_ode_solution:
+        prey, predator = data.ys[0], data.ys[1]
+    else:
+        prey, predator = data[:, 0], data[:, 1]
+    
+    # norm_time = (time - np.min(time)) / (np.max(time) - np.min(time))
+    norm_time = time
+
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+    sc = axes[0].scatter(prey, predator, c=norm_time, cmap="gray_r", label="Phase Portrait")
+    axes[0].plot(prey, predator, color='black', linewidth=0.5)
+    axes[0].scatter(prey[0], predator[0], c='lightgreen', label="Initial time", zorder=5)
+    axes[0].scatter(prey[-1], predator[-1], c='darkgreen', label="Final time", zorder=5)
+    axes[0].set_xlabel(f"prey population (thousands/{U_0:.1f})")
+    axes[0].set_ylabel(f"predator population\n(thousands/{V_0:.1f})")
+    axes[0].set_title('linear scale')
+    plt.colorbar(sc, ax=axes[0], label='')
+
+    sc = axes[1].scatter(prey, predator, c=norm_time, cmap="gray_r", label="Phase Portrait")
+    axes[1].plot(prey, predator, color='black', linewidth=0.5)
+    axes[1].scatter(prey[0], predator[0], c='lightgreen', label="Initial time", zorder=5)
+    axes[1].scatter(prey[-1], predator[-1], c='darkgreen', label="Final time", zorder=5)
+    axes[1].set_xscale('log')
+    axes[1].set_yscale('log')
+    axes[1].set_xlabel(f"prey population (thousands/{U_0:.1f})")
+    # axes[1].set_ylabel(f"predator population\n(thousands/{V_0:.1f})")
+    axes[1].set_title('log scale')
+    plt.colorbar(sc, ax=axes[1], label=f"Time (years/{T:.1f})")
+
+    plt.tight_layout()
+    plt.show()
+
+plot_phase_portrait(original_data, year, is_ode_solution=False)
+plot_phase_portrait(data, time, is_ode_solution=False, U_0=U_0, V_0=V_0, T=T)
+```
+
+#### Simulate individual trajectories
+
+```python
+def dz_dt_diffrax(t, z, theta):
+    """
+    Lotka–Volterra equations. Real positive parameters `alpha`, `beta`, `gamma`, `delta`
+    describes the interaction of two species.
+    """
+    u, v = z
+    alpha, beta, gamma, delta = theta
+    du = (alpha - beta * v) * u
+    dv = (-gamma + delta * u) * v
+    d_z = du, dv
+    return d_z
+
+def dz_dt(z, t, theta):
     """
     Lotka–Volterra equations. Real positive parameters `alpha`, `beta`, `gamma`, `delta`
     describes the interaction of two species.
@@ -195,68 +350,19 @@ def dz_dt(t, z, theta):
 ```
 
 ```python
-term = ODETerm(dz_dt)
-t0 = 0
-t1 = data.shape[0]
-dt0 = 0.01
-y0 = (10.0, 10.0)
-args = (1.0, 0.05, 1.0, 0.05)
-# saveat = SaveAt(ts=jnp.linspace(t0,t1,1000))
-saveat = SaveAt(ts=jnp.arange(float(t1)))
-stepsize_controller = PIDController(rtol=1e-6, atol=1e-5)
-solution = diffeqsolve(
-    term,
-    solver=Dopri5(),
-    t0=t0,
-    t1=t1,
-    dt0=dt0,
-    y0=y0,
-    args=args,
-    saveat=saveat,
-    stepsize_controller=stepsize_controller,
-    adjoint=BacksolveAdjoint(),
-    max_steps=1000,
-)
-```
-
-```python
-plt.plot(solution.ts, solution.ys[0], label="prey", marker=".", ms=12, color="green")
-plt.plot(solution.ts, solution.ys[1], label="predator", marker=".", ms=12, color="gray")
-plt.xlabel("time (years)")
-plt.ylabel("population (thousands)")
-plt.legend(loc="upper right")
-plt.show()
-```
-
-#### Define probabilistic model
-
-```python
-def model(N, y=None):
-    """
-    :param int N: number of measurement times
-    :param numpy.ndarray y: measured populations with shape (N, 2)
-    """
-    z_init = numpyro.sample("z_init", dist.LogNormal(jnp.log(10), 1).expand([2]))
-    ts = jnp.arange(float(N))
-    theta = numpyro.sample(
-        "theta",
-        dist.TruncatedNormal(
-            low=5e-3,
-            loc=jnp.array([1.0, 0.05, 1.0, 0.05]),
-            scale=jnp.array([0.5, 0.05, 0.5, 0.05]),
-        ),
-    )
-
-    term = ODETerm(dz_dt)
+@jax.jit
+def solve_lv_model(ts, z_init, theta, N=None):
+    term = ODETerm(dz_dt_diffrax)
     t0 = 0.0
-    t1 = float(N)
+    # t1 = N
+    t1 = jnp.max(ts)
     dt0 = 0.01
     saveat = SaveAt(ts=ts)
     stepsize_controller = PIDController(rtol=1e-6, atol=1e-5)
-    
+
     y0 = tuple(z_init)
     args = tuple(theta)
-    
+
     solution = diffeqsolve(
         term,
         solver=Dopri5(),
@@ -267,10 +373,211 @@ def model(N, y=None):
         args=args,
         saveat=saveat,
         stepsize_controller=stepsize_controller,
+        adjoint=BacksolveAdjoint(),
         max_steps=int(1e9),
     )
 
-    z = jnp.stack(solution.ys, axis=-1)
+    return solution
+```
+
+```python
+y0 = (2.5, 0.5)
+args = (5.0, 3.0, 5.0, 3.0)
+solution = solve_lv_model(time, y0, args)
+```
+
+```python
+def descale_parameters(args, U0, V0, T):
+    # extract input parameters
+    bar_alpha, bar_beta, bar_gamma, bar_delta = args
+
+    # convert rescaled parameters to original parameters
+    alpha = (bar_alpha * U0) / T
+    gamma = (bar_gamma * V0) / T
+    beta = bar_beta / (V0 * T)
+    delta = bar_delta / (U0 * T)
+
+    # return the converted parameters
+    return alpha, beta, gamma, delta
+
+
+def rescale_parameters(args, U0, V0, T):
+    # extract input parameters
+    alpha, beta, gamma, delta = args
+
+    # convert original parameters to rescaled parameters
+    bar_alpha = (alpha * T) / U0
+    bar_gamma = (gamma * T) / V0
+    bar_beta = beta * V0 * T
+    bar_delta = delta * U0 * T
+
+    # return the rescaled parameters
+    return bar_alpha, bar_beta, bar_gamma, bar_delta
+```
+
+```python
+alpha, beta, gamma, delta = descale_parameters(args, U_0, V_0, T)
+print(
+    f"Descaled paramerters:\n  "
+    f"alpha: {alpha:.1f}, "
+    f"beta: {beta:.5f}, "
+    f"gamma: {gamma:.1f}, "
+    f"delta: {delta:.5f}"
+)
+
+rescaled_args = rescale_parameters((alpha, beta, gamma, delta), U_0, V_0, T)
+print(
+    f"Rescaled Parameters:\n  "
+    f"bar_alpha: {rescaled_args[0]:.1f}, "
+    f"bar_beta: {rescaled_args[1]:.2f}, "
+    f"bar_gamma: {rescaled_args[2]:.1f}, "
+    f"bar_delta: {rescaled_args[3]:.2f}"
+)
+```
+
+```python
+def plot_ode_solution(solution):
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+    axes[0].plot(solution.ts, solution.ys[0], label="prey", marker=".", ms=12, color="green")
+    axes[0].plot(solution.ts, solution.ys[1], label="predator", marker=".", ms=12, color="gray")
+    axes[0].set_xlabel(f"time (years/{T:.2f})")
+    axes[0].set_ylabel(f"population\n(thousands/{U_0:.1f} and {V_0:.1f})")
+    # axes[0].legend(loc="best")
+    axes[0].set_title('linear scale')
+
+    axes[1].plot(solution.ts, solution.ys[0], label="prey", marker=".", ms=12, color="green")
+    axes[1].plot(solution.ts, solution.ys[1], label="predator", marker=".", ms=12, color="gray")
+    axes[1].set_yscale('log')
+    axes[1].set_xlabel(f"time (years/{T:.2f})")
+    axes[1].set_ylabel(f"population\n(thousands/{U_0:.1f} and {V_0:.1f})")
+    axes[1].set_ylim(10**-2, 10**1)
+    axes[1].legend(loc="lower right")
+    axes[1].set_title('log scale')
+
+    # Show plot
+    plt.tight_layout()
+    plt.show()
+
+```
+
+```python
+type(solution.ys)
+```
+
+```python
+plot_ode_solution(solution)
+plot_phase_portrait(solution, time, is_ode_solution=True, U_0=U_0, V_0=V_0, T=T)
+```
+
+#### Define probabilistic model
+
+
+We would like to estimate the parameters for `dist.LogNormal` that will lead to only 5% of the probability mass greater than 0.5. We can solve this problem analytically. Let's say the parameters of the `LogNormal` distribution are $\mu$ and $\sigma$. We are looking for values of $\mu$ and $\sigma$ such that:
+
+$$P(X > 0.5) = 0.05$$
+
+where $X$ follows a LogNormal distribution with parameters $\mu$ and $\sigma$. The cumulative distribution function (CDF) of the LogNormal distribution is:
+
+$$P(X \le x) = \frac{1}{2} + \frac{1}{2} \text{erf}\left(\frac{\ln(x) - \mu}{\sqrt{2} \sigma}\right)$$
+
+So, the probability that $X$ is greater than 0.5 can be written as:
+
+$$P(X > 0.5) = 1 - P(X \le 0.5) = 1 - \left(\frac{1}{2} + \frac{1}{2} \text{erf}\left(\frac{\ln(0.5) - \mu}{\sqrt{2} \sigma}\right)\right) = 0.05$$
+
+```python
+from scipy.optimize import fsolve
+from scipy.special import erf
+
+
+def tail_probability_equation(mu, sigma, threshold, upper_tail_mass):
+    return (
+        1 - (0.5 + 0.5 * erf((np.log(threshold) - mu) / (np.sqrt(2) * sigma)))
+    ) - upper_tail_mass
+
+
+def solve_lognormal_parameters(threshold, upper_tail_mass, mu=None, sigma=None):
+    if mu is not None:
+        # Solve for sigma
+        def equation_to_solve(sigma):
+            return tail_probability_equation(mu, sigma, threshold, upper_tail_mass)
+
+        sigma = fsolve(equation_to_solve, 1)[0]
+        return mu, sigma
+
+    elif sigma is not None:
+        # Solve for mu
+        def equation_to_solve(mu):
+            return tail_probability_equation(mu, sigma, threshold, upper_tail_mass)
+
+        mu = fsolve(equation_to_solve, 0)[0]
+        return mu, sigma
+
+    else:
+        raise ValueError("Either mu or sigma must be provided.")
+```
+
+```python
+mu, sigma = solve_lognormal_parameters(threshold=0.5, upper_tail_mass=0.05, sigma=1)
+print("mu:", mu)
+print("sigma:", sigma)
+
+
+mu, sigma = solve_lognormal_parameters(
+    threshold=jnp.log(7), upper_tail_mass=0.05, mu=jnp.log(2)
+)
+print("mu:", mu)
+print("sigma:", sigma)
+```
+
+```python
+key = jax.random.PRNGKey(
+    59
+)
+n_samples = 1000
+sigma_samples = numpyro.sample(
+    "sigma", dist.LogNormal(-1, 1).expand([2]), rng_key=key, sample_shape=(n_samples,)
+)
+
+plt.figure(figsize=(10, 5))
+plt.hist(sigma_samples[:, 0], bins="auto", alpha=0.5, label="Dimension 1")
+plt.hist(sigma_samples[:, 1], bins="auto", alpha=0.5, label="Dimension 2")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.title("Histogram of Samples from LogNormal Distribution")
+plt.legend()
+plt.show()
+```
+
+```python
+def model(N, y=None):
+    """
+    :param int N: number of measurement times
+    :param numpy.ndarray y: measured populations with shape (N, 2)
+    """
+    # ts = jnp.arange(float(N))
+    ts = N
+    # z_init = numpyro.sample("z_init", dist.LogNormal(jnp.log(10), 1).expand([2]))
+    z_init = numpyro.sample(
+        "z_init", dist.TruncatedNormal(low=0.001, loc=0.7, scale=0.7).expand([2])
+    )
+    theta = numpyro.sample(
+        "theta",
+        dist.TruncatedNormal(
+            # low=5e-1,
+            # loc=jnp.array([1.0, 0.05, 1.0, 0.05]),
+            # scale=jnp.array([0.5, 0.05, 0.5, 0.05]),
+            low=jnp.array([1, 1, 1, 1]),
+            high=jnp.array([9, 9, 9, 9]),
+            loc=jnp.array([4.0, 4.0, 4.0, 4.0]),
+            scale=jnp.array([2, 2, 2, 2]),
+        ),
+    )
+
+    # solution = solve_lv_model(ts, z_init, theta)
+    # z = jnp.stack(solution.ys, axis=-1)
+
+    z = odeint(dz_dt, z_init, ts, theta, rtol=1e-6, atol=1e-5, mxstep=1000)
     positive_mask = z > 1e-10
     log_z = jnp.where(positive_mask, jnp.log(z), -1e10)
 
@@ -282,7 +589,8 @@ def model(N, y=None):
 numpyro.render_model(
     model,
     model_args=(
-        data.shape[0],
+        # data.shape[0],
+        time,
         data,
     ),
     render_distributions=True,
@@ -301,7 +609,7 @@ rng_key, rng_key_ = jax.random.split(rng_key)
 ```python
 rng_key, rng_key_ = jax.random.split(rng_key)
 prior_predictive = Predictive(model, num_samples=1000)
-prior_predictions = prior_predictive(rng_key_, data.shape[0])
+prior_predictions = prior_predictive(rng_key_, time)
 ```
 
 ```python
@@ -310,162 +618,240 @@ idata_prior = az.from_numpyro(
     prior=prior_predictions,
     posterior_predictive={"y": prior_predictions["y"]},
 )
+
+new_coords = {"y_dim_0": time}
+idata_prior.posterior_predictive = idata_prior.posterior_predictive.assign_coords(new_coords)
+idata_prior.prior = idata_prior.prior.assign_coords(new_coords)
+
+
 import xarray as xr
 
 observed_data = xr.Dataset(
     {"y": (["y_dim_0", "y_dim_1"], data)},
-    coords={"y_dim_0": range(data.shape[0]), "y_dim_1": range(data.shape[1])},
+    coords={"y_dim_0": time, "y_dim_1": range(data.shape[1])},
 )
 idata_prior.add_groups(observed_data=observed_data)
 ```
 
 ```python
-observed_y = idata_prior.observed_data["y"]
-prior_samples = idata_prior.prior["y"]
-
-fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(10, 10), sharex=True)
-
-ax1.plot(observed_y[:, 0], label="prey", color="green")
-ax1.plot(observed_y[:, 1], label="predator", color="gray")
-
-selected_indices = np.random.choice(prior_samples.shape[1], 20, replace=False)
-max_val = 0
-for i in selected_indices:
-    ax1.plot(prior_samples[0, i, :, 0], color="green", alpha=0.1)
-    ax1.plot(prior_samples[0, i, :, 1], color="gray", alpha=0.1)
-    # max_val = max(max_val, prior_samples[0, i, :, 0].max(), prior_samples[0, i, :, 1].max())
-
-max_val = observed_y.max()
-ax1.set_ylim([-0.01, max_val * 1.1])
-
-ax2.plot(observed_y[:, 0], label="prey", color="green")
-ax2.plot(observed_y[:, 1], label="predator", color="gray")
-for i in selected_indices:
-    ax2.plot(prior_samples[0, i, :, 0], color="green", alpha=0.1)
-    ax2.plot(prior_samples[0, i, :, 1], color="gray", alpha=0.1)
-
-ax2.set_yscale("log")
-
-ax1.set_ylabel("Population number (linear)")
-ax2.set_xlabel("Time (years)")
-ax2.set_ylabel("(log)")
-ax1.legend()
-ax1.set_title("Observed Data and Prior Sample Trajectories")
-
-plt.tight_layout()
-plt.show()
+idata_prior
 ```
 
 ```python
-# colors for percentile bands
-colors = [
-    "#DCBCBC",
-    "#C79999",
-    "#B97C7C",
-    "#A25050",
-    "#8F2727",
-    "#7C0000"
-]
+def plot_sample_trajectories(observed_y, samples, time):
+    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(10, 10), sharex=True)
+    
+    # Linear scale plot
+    ax1.plot(time, observed_y[:, 0], label="prey", color="green", marker=".", ms=12,)
+    ax1.plot(time, observed_y[:, 1], label="predator", color="gray", marker=".", ms=12,)
+    
+    selected_indices = np.random.choice(samples.shape[1], 20, replace=False)
+    
+    for i in selected_indices:
+        ax1.plot(time, samples[0, i, :, 0], color="green", alpha=0.1)
+        ax1.plot(time, samples[0, i, :, 1], color="gray", alpha=0.1)
+    
+    max_val = observed_y.max()
+    ax1.set_ylim([-0.01, max_val * 1.2])
+    
+    # Log scale plot
+    ax2.plot(time, observed_y[:, 0], label="prey", color="green", marker=".", ms=12,)
+    ax2.plot(time, observed_y[:, 1], label="predator", color="gray", marker=".", ms=12,)
+    
+    for i in selected_indices:
+        ax2.plot(time, samples[0, i, :, 0], color="green", alpha=0.1)
+        ax2.plot(time, samples[0, i, :, 1], color="gray", alpha=0.1)
+    
+    ax2.set_yscale("log")
+    
+    # Labels and titles
+    ax1.set_ylabel("Population number (linear)")
+    ax2.set_xlabel("Time (years)")
+    ax2.set_ylabel("(log)")
+    ax1.legend()
+    ax1.set_title("Observed Data and Prior Sample Trajectories")
+    
+    # Show plot
+    plt.tight_layout()
+    plt.show()
+```
 
+```python
+observed_y = idata_prior.observed_data["y"]
+prior_samples = idata_prior.prior["y"]
+plot_sample_trajectories(observed_y, prior_samples, time)
+```
+
+```python
+def plot_sample_phase_portraits(observed_y, samples):
+    fig, (ax1, ax2) = plt.subplots(nrows=1, ncols=2, figsize=(15, 7))
+    
+    # Phase portrait for observed data (linear space)
+    ax1.plot(observed_y[:, 0], observed_y[:, 1], label="Observed Data", color="black", marker=".", ms=12, linestyle="-")
+    
+    # Phase portraits for prior samples (linear space)
+    selected_indices = np.random.choice(samples.shape[1], 20, replace=False)
+    for i in selected_indices:
+        ax1.plot(samples[0, i, :, 0], samples[0, i, :, 1], color="gray", alpha=0.2, linestyle="-")
+    
+    max_val = observed_y.max()
+    ax1.set_ylim([-0.01, max_val * 1.2])
+    ax1.set_xlim([-0.01, max_val * 1.2])
+    ax1.set_xlabel("Prey Population")
+    ax1.set_ylabel("Predator Population")
+    ax1.legend()
+    ax1.set_title("Phase Portrait (linear)")
+
+    # Phase portrait for observed data (log space)
+    ax2.loglog(observed_y[:, 0], observed_y[:, 1], label="Observed Data", color="black", marker=".", ms=12, linestyle="-")
+    
+    # Phase portraits for prior samples (log space)
+    for i in selected_indices:
+        ax2.loglog(samples[0, i, :, 0], samples[0, i, :, 1], color="gray", alpha=0.2, linestyle="-")
+    
+    ax2.set_xlabel("Prey Population")
+    ax2.set_ylabel("Predator Population")
+    ax2.legend()
+    ax2.set_title("Phase Portrait (log)")
+    
+    # Show plot
+    plt.tight_layout()
+    plt.show()
+```
+
+```python
+observed_y = idata_prior.observed_data["y"]
+prior_samples = idata_prior.prior["y"]
+plot_sample_phase_portraits(observed_y, prior_samples)
+```
+
+```python
+from scipy.stats import circmean
+
+
+def plot_population_with_percentiles(observed_y, samples, time, colors):
+    fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(10, 10), sharex=True)
+    
+    # observed data
+    ax1.plot(time, observed_y[:, 0], label="prey", color="green", marker=".", ms=12,)
+    ax1.plot(time, observed_y[:, 1], label="predator", color="lightgreen", marker=".", ms=12,)
+    
+    # compute percentiles
+    percentiles = np.linspace(0, 100, 8)[1:-1]
+    
+    # percentile bands
+    for i, percentile in enumerate(percentiles[::-1]):
+        upper = np.percentile(samples[:, :, :, 0], 50 + percentile / 2, axis=1)
+        lower = np.percentile(samples[:, :, :, 0], 50 - percentile / 2, axis=1)
+        ax1.fill_between(
+            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+        )
+    
+        upper = np.percentile(samples[:, :, :, 1], 50 + percentile / 2, axis=1)
+        lower = np.percentile(samples[:, :, :, 1], 50 - percentile / 2, axis=1)
+        ax1.fill_between(
+            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+        )
+    
+    # median
+    median_0 = np.percentile(samples[:, :, :, 0], 50, axis=1).mean(axis=0)
+    median_1 = np.percentile(samples[:, :, :, 1], 50, axis=1).mean(axis=0)
+    ax1.plot(time, median_0, color="black", label="median prey", marker=".", ms=12,)
+    ax1.plot(time, median_1, color="gray", label="median predator", marker=".", ms=12,)
+    
+    ax1.set_ylabel("Population number (linear)")
+    ax1.legend()
+    ax1.set_title("Observed Data with Percentile Bands")
+    
+    # log scale
+    ax2.plot(time, observed_y[:, 0], label="observed prey", color="green", marker=".", ms=12,)
+    ax2.plot(time, observed_y[:, 1], label="observed predator", color="lightgreen", marker=".", ms=12,)
+    
+    for i, percentile in enumerate(percentiles[::-1]):
+        upper = np.percentile(samples[:, :, :, 0], 50 + percentile / 2, axis=1)
+        lower = np.percentile(samples[:, :, :, 0], 50 - percentile / 2, axis=1)
+        ax2.fill_between(
+            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+        )
+    
+        upper = np.percentile(samples[:, :, :, 1], 50 + percentile / 2, axis=1)
+        lower = np.percentile(samples[:, :, :, 1], 50 - percentile / 2, axis=1)
+        ax2.fill_between(
+            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+        )
+    
+    ax2.plot(time, median_0, color="green", label="median prey", marker=".", ms=12,)
+    ax2.plot(time, median_1, color="gray", label="median predator", marker=".", ms=12,)
+    
+    ax2.set_yscale("log")
+    ax2.set_xlabel("Time (years)")
+    ax2.set_ylabel("(log)")
+   
+    plt.tight_layout()
+    plt.show()
+```
+
+```python
+colors = ["#DCBCBC", "#C79999", "#B97C7C", "#A25050", "#8F2727", "#7C0000"]
 observed_y = idata_prior.observed_data["y"]
 prior_samples = idata_prior.prior["y"]
 
-fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(10, 10), sharex=True)
+plot_population_with_percentiles(observed_y, prior_samples, time, colors)
 
-# observed data
-ax1.plot(observed_y[:, 0], label="prey", color="green")
-ax1.plot(observed_y[:, 1], label="predator", color="lightgreen")
-
-# compute percentiles
-percentiles = np.linspace(0, 100, 8)[1:-1]  # Equally spaced percentiles
-
-# percentile bands
-for i, percentile in enumerate(percentiles[::-1]):
-    upper = np.percentile(prior_samples[:, :, :, 0], 50 + percentile / 2, axis=1)
-    lower = np.percentile(prior_samples[:, :, :, 0], 50 - percentile / 2, axis=1)
-    ax1.fill_between(range(prior_samples.shape[2]), lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6)
-    
-    upper = np.percentile(prior_samples[:, :, :, 1], 50 + percentile / 2, axis=1)
-    lower = np.percentile(prior_samples[:, :, :, 1], 50 - percentile / 2, axis=1)
-    ax1.fill_between(range(prior_samples.shape[2]), lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6)
-
-# median
-median_0 = np.percentile(prior_samples[:, :, :, 0], 50, axis=1).mean(axis=0)
-median_1 = np.percentile(prior_samples[:, :, :, 1], 50, axis=1).mean(axis=0)
-ax1.plot(median_0, color="black", label="Median prey")
-ax1.plot(median_1, color="gray", label="Median predator")
-
-ax1.set_ylabel("Population number (linear)")
-ax1.legend()
-ax1.set_title("Observed Data with Percentile Bands")
-
-# log scale
-ax2.plot(observed_y[:, 0], label="observed prey", color="green")
-ax2.plot(observed_y[:, 1], label="observed predator", color="lightgreen")
-
-for i, percentile in enumerate(percentiles[::-1]):
-    upper = np.percentile(prior_samples[:, :, :, 0], 50 + percentile / 2, axis=1)
-    lower = np.percentile(prior_samples[:, :, :, 0], 50 - percentile / 2, axis=1)
-    ax2.fill_between(range(prior_samples.shape[2]), lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6)
-    
-    upper = np.percentile(prior_samples[:, :, :, 1], 50 + percentile / 2, axis=1)
-    lower = np.percentile(prior_samples[:, :, :, 1], 50 - percentile / 2, axis=1)
-    ax2.fill_between(range(prior_samples.shape[2]), lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6)
-
-ax2.plot(median_0, color="green", label="median prey")
-ax2.plot(median_1, color="gray", label="median predator")
-
-ax2.set_yscale("log")
-ax2.set_xlabel("Time (years)")
-ax2.set_ylabel("(log)")
-
-plt.tight_layout()
-plt.show()
 ```
 
 ```python
 def plot_percentile_bands(prior_samples, observed_y, variable_index, ax):
     # Define colors
-    colors = [
-        "#DCBCBC",
-        "#C79999",
-        "#B97C7C",
-        "#A25050",
-        "#8F2727",
-        "#7C0000"
-    ]
-    
+    colors = ["#DCBCBC", "#C79999", "#B97C7C", "#A25050", "#8F2727", "#7C0000"]
+
     # compute percentiles
     percentiles = np.linspace(0, 100, 8)[1:-1]
-    
+
     # observed data
-    ax[0].plot(observed_y[:, variable_index], color="green", label="observed")
-    
+    ax[0].plot(time, observed_y[:, variable_index], color="green", label="observed", marker=".", ms=12,)
+
     # percentile bands
     for i, percentile in enumerate(percentiles[::-1]):
-        upper = np.percentile(prior_samples[:, :, :, variable_index], 50 + percentile / 2, axis=1)
-        lower = np.percentile(prior_samples[:, :, :, variable_index], 50 - percentile / 2, axis=1)
-        ax[0].fill_between(range(prior_samples.shape[2]), lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6)
-    
+        upper = np.percentile(
+            prior_samples[:, :, :, variable_index], 50 + percentile / 2, axis=1
+        )
+        lower = np.percentile(
+            prior_samples[:, :, :, variable_index], 50 - percentile / 2, axis=1
+        )
+        ax[0].fill_between(
+            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+        )
+
     # median
-    median = np.percentile(prior_samples[:, :, :, variable_index], 50, axis=1).mean(axis=0)
-    ax[0].plot(median, color="gray", label="median")
-    
+    median = np.percentile(prior_samples[:, :, :, variable_index], 50, axis=1).mean(
+        axis=0
+    )
+    ax[0].plot(time, median, color="gray", label="median", marker=".", ms=12,)
+
     # linear scale plot
     ax[0].set_ylabel("Population number (linear)")
     ax[0].legend()
-    ax[0].set_title(f"Observed Data with Percentile Bands ({'Prey' if variable_index == 0 else 'Predator'})")
-    
+    ax[0].set_title(
+        f"Observed Data with Percentile Bands ({'Prey' if variable_index == 0 else 'Predator'})"
+    )
+
     # log scale plot
-    ax[1].plot(observed_y[:, variable_index], color="green", label="observed")
-    
+    ax[1].plot(time, observed_y[:, variable_index], color="green", label="observed", marker=".", ms=12,)
+
     for i, percentile in enumerate(percentiles[::-1]):
-        upper = np.percentile(prior_samples[:, :, :, variable_index], 50 + percentile / 2, axis=1)
-        lower = np.percentile(prior_samples[:, :, :, variable_index], 50 - percentile / 2, axis=1)
-        ax[1].fill_between(range(prior_samples.shape[2]), lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6)
-    
-    ax[1].plot(median, color="gray", label="median")
-    
+        upper = np.percentile(
+            prior_samples[:, :, :, variable_index], 50 + percentile / 2, axis=1
+        )
+        lower = np.percentile(
+            prior_samples[:, :, :, variable_index], 50 - percentile / 2, axis=1
+        )
+        ax[1].fill_between(
+            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+        )
+
+    ax[1].plot(time, median, color="gray", label="median", marker=".", ms=12,)
+
     # Set labels for the log scale plot
     ax[1].set_yscale("log")
     ax[1].set_xlabel("Time (years)")
@@ -491,13 +877,14 @@ light_gray = (0.7, 0.7, 0.7)
 ```python
 az.plot_posterior(
     idata_prior,
-    var_names=["sigma"],
+    var_names=["z_init"],
+    grid=(1, 2),
     group="prior",
     kind="hist",
     round_to=2,
     hdi_prob=0.89,
     color=light_gray,
-);
+)
 ```
 
 ```python
@@ -510,20 +897,19 @@ az.plot_posterior(
     round_to=2,
     hdi_prob=0.89,
     color=light_gray,
-);
+)
 ```
 
 ```python
 az.plot_posterior(
     idata_prior,
-    var_names=["z_init"],
-    grid=(1, 2),
+    var_names=["sigma"],
     group="prior",
     kind="hist",
     round_to=2,
     hdi_prob=0.89,
     color=light_gray,
-);
+)
 ```
 
 ### Fit model
@@ -535,12 +921,17 @@ R = 1000
 ```python
 kernel = NUTS(model, dense_mass=True)
 mcmc = MCMC(
-    kernel, num_warmup=1000, num_samples=R, num_chains=1, chain_method="parallel"
+    kernel,
+    num_warmup=1500,
+    num_samples=R,
+    num_chains=1,
+    chain_method="vectorized",
+    progress_bar=True,
 )
 ```
 
 ```python
-mcmc.run(rng_key_, N=data.shape[0], y=data)
+mcmc.run(rng_key_, N=time, y=data)
 ```
 
 ```python
@@ -554,7 +945,7 @@ posterior_samples = mcmc.get_samples(group_by_chain=False)
 ```python
 rng_key, rng_key_ = jax.random.split(rng_key)
 posterior_predictive = Predictive(model, posterior_samples)
-posterior_predictions = posterior_predictive(rng_key_, data.shape[0])
+posterior_predictions = posterior_predictive(rng_key_, time)
 ```
 
 ```python
@@ -564,7 +955,7 @@ posterior_predictions = posterior_predictive(rng_key_, data.shape[0])
 ```python
 rng_key, rng_key_ = jax.random.split(rng_key)
 prior_predictive = Predictive(model, num_samples=1000)
-prior_predictions = prior_predictive(rng_key_, data.shape[0])
+prior_predictions = prior_predictive(rng_key_, time)
 ```
 
 ```python
@@ -572,10 +963,6 @@ prior_predictions = prior_predictive(rng_key_, data.shape[0])
 ```
 
 ### Organize output data
-
-```python
-type(mcmc)
-```
 
 ```python
 inferencedata = az.from_numpyro(
@@ -596,20 +983,60 @@ inferencedata
 
 ```python
 # with model:
-az.plot_autocorr(inferencedata, var_names=["sigma", "theta"]);
+az.plot_autocorr(inferencedata, var_names=["sigma", "theta"])
 ```
 
 #### Plot prior and posterior predictive distributions
 
 ```python
-ax_ppc = az.plot_ts(idata_prior, y="y", plot_dim="y_dim_0")
-for ax in ax_ppc[0]:
-    ax.set_xlim([-1, 93])
-    ax.set_ylim([-1, 200])
+idata_prior
 ```
 
 ```python
+inferencedata
+```
 
+```python
+type(prior_samples)
+```
+
+```python
+type(posterior_predictive)
+```
+
+```python
+plot_sample_phase_portraits(observed_y, inferencedata.posterior_predictive["y"])
+```
+
+```python
+plot_population_with_percentiles(
+    observed_y, 
+    inferencedata.posterior_predictive["y"], 
+    time, 
+    colors
+)
+```
+
+```python
+for variable_index, name in enumerate(["Prey", "Predator"]):
+    fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(10, 10), sharex=True)
+    plot_percentile_bands(inferencedata.posterior_predictive["y"], observed_y, variable_index, ax)
+    plt.tight_layout()
+    plt.show()
+```
+
+```python
+idata_prior
+```
+
+```python
+ax_ppc = az.plot_ts(idata_prior, y="y", plot_dim="y_dim_0")
+for ax in ax_ppc[0]:
+    # ax.set_xlim([-1, 93])
+    ax.set_ylim([-0.1, 100])
+```
+
+```python
 ax_ppc_log = az.plot_ts(idata_prior, y="y", plot_dim="y_dim_0")
 for ax in ax_ppc_log[0]:
     ax.set_yscale("log")
@@ -619,7 +1046,7 @@ for ax in ax_ppc_log[0]:
 ax_postpc = az.plot_ts(inferencedata, y="y", plot_dim="y_dim_0")
 for ax in ax_postpc[0]:
     ax.set_xlim([-1, 93])
-    ax.set_ylim([-1, 200])
+    ax.set_ylim([-0.01, 5])
 ```
 
 ```python
@@ -632,26 +1059,22 @@ for ax in ax_postpc_log[0]:
 
 ```python
 az.plot_posterior(
-    inferencedata, var_names=["sigma"], grid=(1, 2), kind="hist", color=light_gray
+    inferencedata, var_names=["z_init"], grid=(1, 2), kind="hist", color=light_gray
 )
 az.plot_posterior(
     inferencedata, var_names=["theta"], grid=(2, 2), kind="hist", color=light_gray
 )
 az.plot_posterior(
-    inferencedata, var_names=["z_init"], grid=(1, 2), kind="hist", color=light_gray
-);
+    inferencedata, var_names=["sigma"], grid=(1, 2), kind="hist", color=light_gray
+)
 ```
 
 ```python
+az.plot_forest(inferencedata, var_names=["z_init"])
 az.plot_forest(inferencedata, var_names=["theta"])
 az.plot_forest(inferencedata, var_names=["sigma"])
-az.plot_forest(inferencedata, var_names=["z_init"]);
 ```
 
 ```python
-az.plot_trace(inferencedata, rug=True);
-```
-
-```python
-
+az.plot_trace(inferencedata, rug=True)
 ```
