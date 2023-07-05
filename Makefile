@@ -18,14 +18,18 @@ install-conda: ## Install conda environment from lockfile.
 install-kernel: ## Instal jupyter kernel for conda environment.
 	/opt/conda/envs/api/bin/python -m ipykernel install --prefix=/opt/conda/ --name=api
 
+define extract_figures
+	cd $(1); \
+	mkdir -p $(2); \
+	junix -f $(3) -o $(2) -p figure; \
+	for i in $(2)/*.svg; do \
+		rsvg-convert -f pdf -o $${i%.*}.pdf $$i; \
+	done; \
+	tar -czvf $(2)/figures.tar.gz $(2)/*.svg $(2)/*.pdf
+endef
+
 extract-figures: ## Extract figures from notebooks.
-	cd nbs/python/; \
-	mkdir -p fig/numpyro; \
-	junix -f pbw-numpyro-colab.ipynb -o fig/numpyro/ -p figure; \
-	for i in fig/numpyro/*.svg;do rsvg-convert -f pdf -o $${i%.*}.pdf $$i;done; \
-	cd minimal/; \
-	mkdir -p figures/pyro figures/numpyro; \
-	junix -f pyro-minimal.ipynb -o figures/pyro/ -p figure; \
-	for i in figures/pyro/*.svg;do rsvg-convert -f pdf -o $${i%.*}.pdf $$i;done; \
-	junix -f numpyro-minimal.ipynb -o figures/numpyro/ -p figure; \
-	for i in figures/numpyro/*.svg;do rsvg-convert -f pdf -o $${i%.*}.pdf $$i;done
+	$(call extract_figures,nbs/python/dynsys,figures/lv,numpyro-lv-profile.ipynb)
+	# $(call extract_figures,nbs/python/,fig/numpyro,pbw-numpyro-colab.ipynb)
+	# $(call extract_figures,nbs/python/minimal/,figures/pyro,pyro-minimal.ipynb)
+	# $(call extract_figures,nbs/python/minimal/,figures/numpyro,numpyro-minimal.ipynb)
