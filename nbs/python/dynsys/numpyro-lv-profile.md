@@ -55,6 +55,11 @@ jupyter:
 ### Import libraries
 
 ```python
+import time as time_module
+start_time = time_module.time()
+```
+
+```python
 import platform
 from inspect import getmembers
 from pprint import pprint
@@ -108,7 +113,6 @@ print(az.__version__)
 ```
 
 ```python
-# print("Numpyro platform:", numpyro.get_platform())
 print("JAX backend:", jax.devices())
 ```
 
@@ -358,14 +362,16 @@ def solve_lv_model(ts, z_init, theta, N=None):
     t1 = jnp.max(ts)
     dt0 = 0.01
     saveat = SaveAt(ts=ts)
-    stepsize_controller = PIDController(rtol=1e-6, atol=1e-5)
+    # stepsize_controller = PIDController(rtol=1e-6, atol=1e-5)
+    stepsize_controller = PIDController(rtol=1e-7, atol=1e-7)
 
     y0 = tuple(z_init)
     args = tuple(theta)
 
     solution = diffeqsolve(
         term,
-        solver=Dopri5(),
+        # solver=Dopri5(),
+        solver=Tsit5(),
         t0=t0,
         t1=t1,
         dt0=dt0,
@@ -373,8 +379,9 @@ def solve_lv_model(ts, z_init, theta, N=None):
         args=args,
         saveat=saveat,
         stepsize_controller=stepsize_controller,
-        adjoint=BacksolveAdjoint(),
-        max_steps=int(1e9),
+        # adjoint=BacksolveAdjoint(),
+        max_steps=int(1e4),
+        throw=False,
     )
 
     return solution
@@ -550,6 +557,45 @@ plt.show()
 ```
 
 ```python
+key = jax.random.PRNGKey(
+    59
+)
+n_samples = 1000
+sigma_samples = numpyro.sample(
+    "sigma", dist.HalfNormal(1).expand([2]), rng_key=key, sample_shape=(n_samples,)
+)
+
+plt.figure(figsize=(10, 5))
+plt.hist(sigma_samples[:, 0], bins="auto", alpha=0.5, label="Dimension 1")
+plt.hist(sigma_samples[:, 1], bins="auto", alpha=0.5, label="Dimension 2")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.title("Histogram of Samples from HalfNormal Distribution")
+plt.legend()
+plt.show()
+```
+
+```python
+key = jax.random.PRNGKey(
+    59
+)
+n_samples = 1000
+sigma_samples = numpyro.sample(
+    "sigma", dist.TruncatedNormal(low=1, high=10, loc=5.0, scale=2).expand([2]), rng_key=key, sample_shape=(n_samples,)
+    # "sigma", dist.TruncatedNormal(low=.001, high=4, loc=0.7, scale=1).expand([2]), rng_key=key, sample_shape=(n_samples,)
+)
+
+plt.figure(figsize=(10, 5))
+plt.hist(sigma_samples[:, 0], bins="auto", alpha=0.5, label="Dimension 1")
+plt.hist(sigma_samples[:, 1], bins="auto", alpha=0.5, label="Dimension 2")
+plt.xlabel("Value")
+plt.ylabel("Frequency")
+plt.title("Histogram of Samples from TruncatedNormal Distribution")
+plt.legend()
+plt.show()
+```
+
+```python
 def model(N, y=None):
     """
     :param int N: number of measurement times
@@ -559,7 +605,7 @@ def model(N, y=None):
     ts = N
     # z_init = numpyro.sample("z_init", dist.LogNormal(jnp.log(10), 1).expand([2]))
     z_init = numpyro.sample(
-        "z_init", dist.TruncatedNormal(low=0.001, loc=0.7, scale=0.7).expand([2])
+        "z_init", dist.TruncatedNormal(low=0.001, high=4, loc=0.7, scale=1).expand([2])
     )
     theta = numpyro.sample(
         "theta",
@@ -567,21 +613,22 @@ def model(N, y=None):
             # low=5e-1,
             # loc=jnp.array([1.0, 0.05, 1.0, 0.05]),
             # scale=jnp.array([0.5, 0.05, 0.5, 0.05]),
-            low=jnp.array([1, 1, 1, 1]),
+            low=jnp.array([1,1,1,1]),
             high=jnp.array([9, 9, 9, 9]),
-            loc=jnp.array([4.0, 4.0, 4.0, 4.0]),
+            loc=jnp.array([5, 5, 5, 5]),
             scale=jnp.array([2, 2, 2, 2]),
         ),
     )
 
-    # solution = solve_lv_model(ts, z_init, theta)
-    # z = jnp.stack(solution.ys, axis=-1)
+    solution = solve_lv_model(ts, z_init, theta)
+    z = jnp.stack(solution.ys, axis=-1)
 
-    z = odeint(dz_dt, z_init, ts, theta, rtol=1e-6, atol=1e-5, mxstep=1000)
+    # z = odeint(dz_dt, z_init, ts, theta, rtol=1e-6, atol=1e-5, mxstep=1000)
     positive_mask = z > 1e-10
     log_z = jnp.where(positive_mask, jnp.log(z), -1e10)
 
-    sigma = numpyro.sample("sigma", dist.LogNormal(-1, 1).expand([2]))
+    # sigma = numpyro.sample("sigma", dist.LogNormal(-1, 1).expand([2]))
+    sigma = numpyro.sample("sigma", dist.HalfNormal(1).expand([2]))
     numpyro.sample("y", dist.LogNormal(log_z, sigma), obs=y)
 ```
 
@@ -729,12 +776,14 @@ plot_sample_phase_portraits(observed_y, prior_samples)
 from scipy.stats import circmean
 
 
-def plot_population_with_percentiles(observed_y, samples, time, colors):
+def plot_population_with_percentiles(observed_y, samples, time):
+    red_colors = ["#DCBCBC", "#C79999", "#B97C7C", "#A25050", "#8F2727", "#7C0000"]
+    green_colors = ["#BCDCC6", "#99C7A1", "#7CB988", "#50A26A", "#278F4E", "#007C32"]
     fig, (ax1, ax2) = plt.subplots(nrows=2, ncols=1, figsize=(10, 10), sharex=True)
     
     # observed data
-    ax1.plot(time, observed_y[:, 0], label="prey", color="green", marker=".", ms=12,)
-    ax1.plot(time, observed_y[:, 1], label="predator", color="lightgreen", marker=".", ms=12,)
+    ax1.plot(time, observed_y[:, 0], label="prey", color="black", marker=".", ms=12,)
+    ax1.plot(time, observed_y[:, 1], label="predator", color="gray", marker=".", ms=12,)
     
     # compute percentiles
     percentiles = np.linspace(0, 100, 8)[1:-1]
@@ -744,44 +793,44 @@ def plot_population_with_percentiles(observed_y, samples, time, colors):
         upper = np.percentile(samples[:, :, :, 0], 50 + percentile / 2, axis=1)
         lower = np.percentile(samples[:, :, :, 0], 50 - percentile / 2, axis=1)
         ax1.fill_between(
-            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+            time, lower.mean(axis=0), upper.mean(axis=0), color=red_colors[i], alpha=0.2
         )
     
         upper = np.percentile(samples[:, :, :, 1], 50 + percentile / 2, axis=1)
         lower = np.percentile(samples[:, :, :, 1], 50 - percentile / 2, axis=1)
         ax1.fill_between(
-            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+            time, lower.mean(axis=0), upper.mean(axis=0), color=green_colors[i], alpha=0.2
         )
     
     # median
     median_0 = np.percentile(samples[:, :, :, 0], 50, axis=1).mean(axis=0)
     median_1 = np.percentile(samples[:, :, :, 1], 50, axis=1).mean(axis=0)
-    ax1.plot(time, median_0, color="black", label="median prey", marker=".", ms=12,)
-    ax1.plot(time, median_1, color="gray", label="median predator", marker=".", ms=12,)
+    ax1.plot(time, median_0, color="#7C0000", label="median prey", marker=".", ms=12,)
+    ax1.plot(time, median_1, color="#007C32", label="median predator", marker=".", ms=12,)
     
     ax1.set_ylabel("Population number (linear)")
     ax1.legend()
     ax1.set_title("Observed Data with Percentile Bands")
     
     # log scale
-    ax2.plot(time, observed_y[:, 0], label="observed prey", color="green", marker=".", ms=12,)
-    ax2.plot(time, observed_y[:, 1], label="observed predator", color="lightgreen", marker=".", ms=12,)
+    ax2.plot(time, observed_y[:, 0], label="observed prey", color="black", marker=".", ms=12,)
+    ax2.plot(time, observed_y[:, 1], label="observed predator", color="gray", marker=".", ms=12,)
     
     for i, percentile in enumerate(percentiles[::-1]):
         upper = np.percentile(samples[:, :, :, 0], 50 + percentile / 2, axis=1)
         lower = np.percentile(samples[:, :, :, 0], 50 - percentile / 2, axis=1)
         ax2.fill_between(
-            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+            time, lower.mean(axis=0), upper.mean(axis=0), color=red_colors[i], alpha=0.2
         )
     
         upper = np.percentile(samples[:, :, :, 1], 50 + percentile / 2, axis=1)
         lower = np.percentile(samples[:, :, :, 1], 50 - percentile / 2, axis=1)
         ax2.fill_between(
-            time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
+            time, lower.mean(axis=0), upper.mean(axis=0), color=green_colors[i], alpha=0.2
         )
     
-    ax2.plot(time, median_0, color="green", label="median prey", marker=".", ms=12,)
-    ax2.plot(time, median_1, color="gray", label="median predator", marker=".", ms=12,)
+    ax2.plot(time, median_0, color="#7C0000", label="median prey", marker=".", ms=12,)
+    ax2.plot(time, median_1, color="#007C32", label="median predator", marker=".", ms=12,)
     
     ax2.set_yscale("log")
     ax2.set_xlabel("Time (years)")
@@ -796,20 +845,20 @@ colors = ["#DCBCBC", "#C79999", "#B97C7C", "#A25050", "#8F2727", "#7C0000"]
 observed_y = idata_prior.observed_data["y"]
 prior_samples = idata_prior.prior["y"]
 
-plot_population_with_percentiles(observed_y, prior_samples, time, colors)
+plot_population_with_percentiles(observed_y, prior_samples, time)
 
 ```
 
 ```python
 def plot_percentile_bands(prior_samples, observed_y, variable_index, ax):
     # Define colors
-    colors = ["#DCBCBC", "#C79999", "#B97C7C", "#A25050", "#8F2727", "#7C0000"]
+    colors = ["#BCDCC6", "#99C7A1", "#7CB988", "#50A26A", "#278F4E", "#007C32"]
 
     # compute percentiles
     percentiles = np.linspace(0, 100, 8)[1:-1]
 
     # observed data
-    ax[0].plot(time, observed_y[:, variable_index], color="green", label="observed", marker=".", ms=12,)
+    ax[0].plot(time, observed_y[:, variable_index], color="gray", label="observed", marker=".", ms=12,)
 
     # percentile bands
     for i, percentile in enumerate(percentiles[::-1]):
@@ -827,7 +876,7 @@ def plot_percentile_bands(prior_samples, observed_y, variable_index, ax):
     median = np.percentile(prior_samples[:, :, :, variable_index], 50, axis=1).mean(
         axis=0
     )
-    ax[0].plot(time, median, color="gray", label="median", marker=".", ms=12,)
+    ax[0].plot(time, median, color="#007C32", label="median", marker=".", ms=12,)
 
     # linear scale plot
     ax[0].set_ylabel("Population number (linear)")
@@ -837,7 +886,7 @@ def plot_percentile_bands(prior_samples, observed_y, variable_index, ax):
     )
 
     # log scale plot
-    ax[1].plot(time, observed_y[:, variable_index], color="green", label="observed", marker=".", ms=12,)
+    ax[1].plot(time, observed_y[:, variable_index], color="gray", label="observed", marker=".", ms=12,)
 
     for i, percentile in enumerate(percentiles[::-1]):
         upper = np.percentile(
@@ -850,7 +899,7 @@ def plot_percentile_bands(prior_samples, observed_y, variable_index, ax):
             time, lower.mean(axis=0), upper.mean(axis=0), color=colors[i], alpha=0.6
         )
 
-    ax[1].plot(time, median, color="gray", label="median", marker=".", ms=12,)
+    ax[1].plot(time, median, color="#007C32", label="median", marker=".", ms=12,)
 
     # Set labels for the log scale plot
     ax[1].set_yscale("log")
@@ -922,7 +971,7 @@ R = 1000
 kernel = NUTS(model, dense_mass=True)
 mcmc = MCMC(
     kernel,
-    num_warmup=1500,
+    num_warmup=1000,
     num_samples=R,
     num_chains=1,
     chain_method="vectorized",
@@ -965,7 +1014,7 @@ prior_predictions = prior_predictive(rng_key_, time)
 ### Organize output data
 
 ```python
-inferencedata = az.from_numpyro(
+idata_posterior = az.from_numpyro(
     mcmc,
     prior=prior_predictions,
     posterior_predictive=posterior_predictions,
@@ -973,7 +1022,7 @@ inferencedata = az.from_numpyro(
 ```
 
 ```python
-inferencedata
+idata_posterior
 ```
 
 ### Evaluate model
@@ -983,7 +1032,7 @@ inferencedata
 
 ```python
 # with model:
-az.plot_autocorr(inferencedata, var_names=["sigma", "theta"])
+az.plot_autocorr(idata_posterior, var_names=["sigma", "theta"])
 ```
 
 #### Plot prior and posterior predictive distributions
@@ -993,7 +1042,7 @@ idata_prior
 ```
 
 ```python
-inferencedata
+idata_posterior
 ```
 
 ```python
@@ -1005,22 +1054,21 @@ type(posterior_predictive)
 ```
 
 ```python
-plot_sample_phase_portraits(observed_y, inferencedata.posterior_predictive["y"])
+plot_sample_phase_portraits(observed_y, idata_posterior.posterior_predictive["y"])
 ```
 
 ```python
 plot_population_with_percentiles(
     observed_y, 
-    inferencedata.posterior_predictive["y"], 
+    idata_posterior.posterior_predictive["y"], 
     time, 
-    colors
 )
 ```
 
 ```python
 for variable_index, name in enumerate(["Prey", "Predator"]):
     fig, ax = plt.subplots(nrows=2, ncols=1, figsize=(10, 10), sharex=True)
-    plot_percentile_bands(inferencedata.posterior_predictive["y"], observed_y, variable_index, ax)
+    plot_percentile_bands(idata_posterior.posterior_predictive["y"], observed_y, variable_index, ax)
     plt.tight_layout()
     plt.show()
 ```
@@ -1043,14 +1091,18 @@ for ax in ax_ppc_log[0]:
 ```
 
 ```python
-ax_postpc = az.plot_ts(inferencedata, y="y", plot_dim="y_dim_0")
+idata_posterior
+```
+
+```python
+ax_postpc = az.plot_ts(idata_posterior, y="y", plot_dim="y_dim_0")
 for ax in ax_postpc[0]:
     ax.set_xlim([-1, 93])
     ax.set_ylim([-0.01, 5])
 ```
 
 ```python
-ax_postpc_log = az.plot_ts(inferencedata, y="y", plot_dim="y_dim_0")
+ax_postpc_log = az.plot_ts(idata_posterior, y="y", plot_dim="y_dim_0")
 for ax in ax_postpc_log[0]:
     ax.set_yscale("log")
 ```
@@ -1059,22 +1111,32 @@ for ax in ax_postpc_log[0]:
 
 ```python
 az.plot_posterior(
-    inferencedata, var_names=["z_init"], grid=(1, 2), kind="hist", color=light_gray
+    idata_posterior, var_names=["z_init"], grid=(1, 2), kind="hist", color=light_gray
 )
 az.plot_posterior(
-    inferencedata, var_names=["theta"], grid=(2, 2), kind="hist", color=light_gray
+    idata_posterior, var_names=["theta"], grid=(2, 2), kind="hist", color=light_gray
 )
 az.plot_posterior(
-    inferencedata, var_names=["sigma"], grid=(1, 2), kind="hist", color=light_gray
+    idata_posterior, var_names=["sigma"], grid=(1, 2), kind="hist", color=light_gray
 )
 ```
 
 ```python
-az.plot_forest(inferencedata, var_names=["z_init"])
-az.plot_forest(inferencedata, var_names=["theta"])
-az.plot_forest(inferencedata, var_names=["sigma"])
+az.plot_forest(idata_posterior, var_names=["z_init"])
+az.plot_forest(idata_posterior, var_names=["theta"])
+az.plot_forest(idata_posterior, var_names=["sigma"])
 ```
 
 ```python
-az.plot_trace(inferencedata, rug=True)
+az.plot_trace(idata_posterior, rug=True)
+```
+
+```python
+end_time = time_module.time()
+total_time = end_time - start_time
+print(f"Total runtime: {total_time/60:0.2f} minutes")
+```
+
+```python
+
 ```
